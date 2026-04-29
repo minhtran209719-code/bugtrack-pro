@@ -19,3 +19,6 @@ data.json.tmp
 
 # English learn (thư mục riêng không liên quan dự án)
 English learn/
+
+# Claude Code workspace
+.claude/
