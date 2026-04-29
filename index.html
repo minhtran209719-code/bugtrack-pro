@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugTrack Pro - Quản lý lỗi & Tiến độ sản phẩm</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🐞</span>
+                <h1>BugTrack Pro</h1>
+                <button id="sidebar-collapse" class="sidebar-collapse" title="Thu gọn / Mở rộng">«</button>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-page="dashboard" title="Tổng quan">
+                    <span class="nav-icon">📊</span> <span class="nav-label">Tổng quan</span>
+                </li>
+                <li class="nav-item" data-page="bugs" title="Quản lý lỗi">
+                    <span class="nav-icon">🐛</span> <span class="nav-label">Quản lý lỗi</span>
+                </li>
+                <li class="nav-item" data-page="improvements" title="Cải tiến">
+                    <span class="nav-icon">🚀</span> <span class="nav-label">Cải tiến</span>
+                </li>
+                <li class="nav-item" data-page="device-summary" title="Tổng hợp thiết bị">
+                    <span class="nav-icon">📱</span> <span class="nav-label">Tổng hợp thiết bị</span>
+                </li>
+                <li class="nav-item" data-page="alerts" title="Cảnh báo">
+                    <span class="nav-icon">🚨</span> <span class="nav-label">Cảnh báo</span>
+                    <span id="alert-badge" class="alert-badge" hidden>0</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <button id="btn-export" class="btn-small" title="Xuất dữ liệu"><span class="btn-icon-emo">💾</span> <span class="btn-label">Xuất dữ liệu</span></button>
+                <button id="btn-import" class="btn-small" title="Nhập dữ liệu"><span class="btn-icon-emo">📂</span> <span class="btn-label">Nhập dữ liệu</span></button>
+                <input type="file" id="import-file" accept=".json" hidden>
+                <div class="sync-indicator">🔄 <span class="btn-label">Cập nhật lúc:</span> <span id="sync-time">--:--:--</span></div>
+            </div>
+        </nav>
+
+        <button id="mobile-toggle" class="mobile-toggle">☰</button>
+
+        <!-- Main -->
+        <main id="content">
+
+            <!-- ========== DASHBOARD ========== -->
+            <section id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <h2>📊 Tổng quan</h2>
+                    <div class="dash-header-right">
+                        <div class="time-filter">
+                            <button class="tf-btn active" data-tf="all">Tất cả</button>
+                            <button class="tf-btn" data-tf="today">Hôm nay</button>
+                            <button class="tf-btn" data-tf="week">Tuần này</button>
+                            <button class="tf-btn" data-tf="month">Tháng này</button>
+                            <input type="date" id="tf-from" class="tf-date" title="Từ ngày">
+                            <span class="tf-sep">→</span>
+                            <input type="date" id="tf-to" class="tf-date" title="Đến ngày">
+                        </div>
+                        <div class="product-selector">
+                            <select id="product-select"></select>
+                            <button id="btn-add-product" class="btn-icon" title="Thêm sản phẩm">➕</button>
+                            <button id="btn-del-product" class="btn-icon danger" title="Xóa sản phẩm">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI số liệu sơ lược -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-total">🐛</div>
+                        <div class="stat-info">
+                            <div class="stat-number" id="s-total">0</div>
+                            <div class="stat-label">Tổng lỗi</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-open">🔄</div>
+                        <div class="stat-info">
+                            <div class="stat-number" id="s-open">0</div>
+                            <div class="stat-label">Đang xử lý</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-done">✅</div>
+                        <div class="stat-info">
+                            <div class="stat-number" id="s-done">0</div>
+                            <div class="stat-label">Hoàn thành</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon stat-overdue">🚨</div>
+                        <div class="stat-info">
+                            <div class="stat-number" id="s-priority">0</div>
+                            <div class="stat-label">Cần ưu tiên</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng số lượng xử lý của mỗi Dev -->
+                <div class="dash-card full-width">
+                    <h3>👨‍💻 Số lượng xử lý theo Dev</h3>
+                    <div class="table-wrap">
+                        <table class="dev-table">
+                            <thead>
+                                <tr>
+                                    <th>Dev</th>
+                                    <th>Tổng</th>
+                                    <th>Đang xử lý</th>
+                                    <th>Hoàn thành</th>
+                                    <th>Quá hạn</th>
+                                    <th>Tỉ lệ hoàn thành</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dev-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bảng số lượng thông tin của mỗi Support -->
+                <div class="dash-card full-width">
+                    <h3>📞 Số lượng thông tin theo Support</h3>
+                    <div class="table-wrap">
+                        <table class="dev-table">
+                            <thead>
+                                <tr>
+                                    <th>Support</th>
+                                    <th>Tổng</th>
+                                    <th>Chưa test</th>
+                                    <th>Chờ test</th>
+                                    <th>Đã test</th>
+                                    <th>Tỉ lệ test xong</th>
+                                </tr>
+                            </thead>
+                            <tbody id="support-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========== BUG MANAGEMENT ========== -->
+            <section id="page-bugs" class="page">
+                <div class="page-header">
+                    <h2>🐛 Quản lý lỗi</h2>
+                    <div class="page-header-right">
+                        <select id="bug-product-select" class="product-select-inline"></select>
+                        <button id="btn-new-bug" class="btn-primary">➕ Tạo lỗi mới</button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-bar">
+                    <input type="text" id="bug-search" placeholder="🔍 Tìm theo tên, ID, mô tả...">
+                    <select id="filter-status">
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Đang xử lí">🔄 Đang xử lí</option>
+                        <option value="Đã xử lí">✅ Đã xử lí</option>
+                        <option value="Chưa có P.A">❌ Chưa có P.A</option>
+                    </select>
+                    <select id="filter-severity">
+                        <option value="all">Tất cả mức độ</option>
+                        <option value="Nghiêm trọng">🔴 Nghiêm trọng</option>
+                        <option value="Thấp">🟢 Thấp</option>
+                    </select>
+                    <select id="filter-type">
+                        <option value="all">Tất cả loại</option>
+                    </select>
+                    <select id="filter-module">
+                        <option value="all">Tất cả thiết bị</option>
+                    </select>
+                </div>
+
+                <!-- Bug table -->
+                <div class="table-wrap">
+                    <table id="bug-table" class="bug-table">
+                        <thead>
+                            <tr class="th-group">
+                                <th colspan="7" class="th-group-support">📞 Support điền</th>
+                                <th colspan="5" class="th-group-dev">👨‍💻 Dev điền</th>
+                            </tr>
+                            <tr>
+                                <th>STT</th>
+                                <th>Tên lỗi</th>
+                                <th>Mô tả</th>
+                                <th>Ngày TT</th>
+                                <th>Người TT</th>
+                                <th>TT Test</th>
+                                <th>Ghi chú TT</th>
+                                <th class="col-divider">Người xử lý</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày XL</th>
+                                <th>Ghi chú XL</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bug-tbody"></tbody>
+                    </table>
+                </div>
+                <div id="bug-empty" class="empty-state" hidden>Chưa có lỗi nào. Nhấn "Tạo lỗi mới" để bắt đầu.</div>
+            </section>
+
+            <!-- ========== KANBAN ========== -->
+            <!-- ========== IMPROVEMENTS ========== -->
+            <section id="page-improvements" class="page">
+                <div class="page-header">
+                    <h2>🚀 Quản lý cải tiến</h2>
+                    <button id="btn-new-imp" class="btn-primary">➕ Đề xuất cải tiến</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" id="imp-search" placeholder="🔍 Tìm kiếm...">
+                    <select id="imp-filter-status">
+                        <option value="all">Tất cả</option>
+                        <option value="Ý tưởng">💡 Ý tưởng</option>
+                        <option value="Đã duyệt">✅ Đã duyệt</option>
+                        <option value="Đang làm">🔄 Đang làm</option>
+                        <option value="Hoàn thành">🎉 Hoàn thành</option>
+                    </select>
+                </div>
+                <div id="imp-list" class="imp-list"></div>
+                <div id="imp-empty" class="empty-state" hidden>Chưa có đề xuất cải tiến nào.</div>
+            </section>
+
+            <!-- ========== DEV TEAM ========== -->
+            <!-- ========== DEVICE SUMMARY ========== -->
+            <section id="page-device-summary" class="page">
+                <div class="page-header">
+                    <h2>📱 Tổng hợp lỗi theo thiết bị</h2>
+                    <div class="page-header-right">
+                        <select id="ds-product-select" class="product-select-inline"></select>
+                    </div>
+                </div>
+
+                <!-- Device cards with bug lists -->
+                <div id="ds-devices"></div>
+            </section>
+
+            <!-- ========== ALERTS ========== -->
+            <section id="page-alerts" class="page">
+                <h2>🚨 Cảnh báo & Nhắc việc</h2>
+                <p class="page-desc">Lỗi quá hạn xử lý sẽ hiển thị tại đây.</p>
+                <div id="alert-list" class="alert-list"></div>
+                <div id="alert-empty" class="empty-state" hidden>Không có cảnh báo. Mọi thứ đang ổn! 🎉</div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ========== MODAL: Bug Form ========== -->
+    <div id="bug-modal" class="modal" hidden>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="bug-modal-title">Tạo lỗi mới</h3>
+                <button class="modal-close" id="bug-modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bug-edit-id">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label>Tên lỗi <span class="req">*</span></label>
+                        <input type="text" id="bug-name" placeholder="VD: Nút đăng nhập không phản hồi">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Sản phẩm / Thiết bị</label>
+                        <select id="bug-module">
+                            <option value="All">📱 Tất cả</option>
+                            <option value="Note 8">Samsung Note 8</option>
+                            <option value="S7">Samsung S7</option>
+                            <option value="Z Flip 3">Samsung Z Flip 3</option>
+                            <option value="__custom">➕ Thêm thiết bị mới...</option>
+                        </select>
+                        <input type="text" id="bug-module-custom" placeholder="Nhập tên thiết bị..." hidden style="margin-top:6px">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mô tả chi tiết</label>
+                    <textarea id="bug-desc" rows="3" placeholder="Mô tả các bước tái hiện lỗi, kết quả mong muốn và thực tế..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Loại lỗi</label>
+                        <div class="cdrop" id="bug-type-drop">
+                            <button class="cdrop-btn" type="button" id="bug-type-btn">🎨 Giao diện ▾</button>
+                            <input type="hidden" id="bug-type" value="Giao diện">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Mức độ nghiêm trọng</label>
+                        <select id="bug-severity">
+                            <option value="Nghiêm trọng" selected>🔴 Nghiêm trọng</option>
+                            <option value="Thấp">🟢 Thấp</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select id="bug-status">
+                            <option value="Đang xử lí">🔄 Đang xử lí</option>
+                            <option value="Đã xử lí">✅ Đã xử lí</option>
+                            <option value="Chưa có P.A">❌ Chưa có P.A</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Người TT (thông tin)</label>
+                        <select id="bug-reporter-select">
+                            <option value="">-- Chọn --</option>
+                            <option value="__add">➕ Thêm người mới...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày TT (thông tin)</label>
+                        <input type="date" id="bug-found-date">
+                    </div>
+                </div>
+                <input type="hidden" id="bug-assignee">
+                <input type="hidden" id="bug-deadline">
+                <div class="form-group">
+                    <label>Ảnh/Video lỗi</label>
+                    <div class="upload-area" id="bug-upload-zone">
+                        <span>📎 Kéo thả, click để chọn, hoặc Ctrl+V để dán ảnh</span>
+                        <input type="file" id="bug-file" accept="image/*,video/*" multiple hidden>
+                    </div>
+                    <div id="bug-attachments" class="attachments"></div>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú của Dev</label>
+                    <textarea id="bug-note" rows="2" placeholder="Ghi chú kỹ thuật, nguyên nhân, cách khắc phục..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-bug-save" class="btn-primary">💾 Lưu</button>
+                <button id="btn-bug-cancel" class="btn-secondary">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Improvement Form ========== -->
+    <div id="imp-modal" class="modal" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="imp-modal-title">Đề xuất cải tiến</h3>
+                <button class="modal-close" id="imp-modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="imp-edit-id">
+                <div class="form-group">
+                    <label>Tên cải tiến <span class="req">*</span></label>
+                    <input type="text" id="imp-name" placeholder="VD: Thêm chế độ dark mode">
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea id="imp-desc" rows="3" placeholder="Mô tả chi tiết nội dung cải tiến..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Độ ưu tiên</label>
+                        <select id="imp-priority">
+                            <option value="Cao">🔴 Cao</option>
+                            <option value="Trung bình" selected>🟡 Trung bình</option>
+                            <option value="Thấp">🟢 Thấp</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select id="imp-status">
+                            <option value="Ý tưởng">💡 Ý tưởng</option>
+                            <option value="Đã duyệt">✅ Đã duyệt</option>
+                            <option value="Đang làm">🔄 Đang làm</option>
+                            <option value="Hoàn thành">🎉 Hoàn thành</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Người đề xuất</label>
+                        <input type="text" id="imp-proposer" placeholder="VD: Lê Thị C">
+                    </div>
+                    <div class="form-group">
+                        <label>Người xử lý</label>
+                        <select id="imp-assignee">
+                            <option value="">-- Chọn --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-imp-save" class="btn-primary">💾 Lưu</button>
+                <button id="btn-imp-cancel" class="btn-secondary">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Bug Detail ========== -->
+    <div id="detail-modal" class="modal" hidden>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="detail-title">Chi tiết lỗi</h3>
+                <button class="modal-close" id="detail-close">✕</button>
+            </div>
+            <div class="modal-body" id="detail-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" hidden></div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox" hidden>
+        <button class="lb-close" id="lb-close">✕</button>
+        <button class="lb-prev" id="lb-prev">❮</button>
+        <button class="lb-next" id="lb-next">❯</button>
+        <div class="lb-content">
+            <img id="lb-img" src="">
+        </div>
+        <div class="lb-counter" id="lb-counter"></div>
+        <div class="lb-zoom-controls">
+            <button class="lb-zoom-btn" id="lb-zoom-out" title="Thu nhỏ (-)">−</button>
+            <span class="lb-zoom-level" id="lb-zoom-level">100%</span>
+            <button class="lb-zoom-btn" id="lb-zoom-in" title="Phóng to (+)">+</button>
+            <button class="lb-zoom-btn" id="lb-zoom-reset" title="Đặt lại (0)">⟲</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

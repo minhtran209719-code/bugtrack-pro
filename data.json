@@ -1,0 +1,1633 @@
+{
+  "bugs": [
+    {
+      "name": "Thêm proxy dạng user:pass bị sập nguồn phone Note8",
+      "module": "Note 8",
+      "description": "Sập nguồn phone, mất điều khiển",
+      "type": "Sập ứng dụng",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "foundDate": "2026-04-14",
+      "assignee": "Tùng",
+      "deadline": "",
+      "devNote": "Khóa không cho nhập proxy user:pass với note8",
+      "attachments": [
+        "file_mo0y1oko4ex4",
+        "/uploads/8162afaf29a3361e.png"
+      ],
+      "id": "BUG-0002",
+      "createdAt": "2026-04-14T05:24:06.812Z",
+      "updatedAt": "2026-04-29T09:52:25.227Z",
+      "reporter": "Tiến",
+      "completedDate": "2026-04-29T09:24:59.525Z",
+      "product": "GemCloudPhone",
+      "history": [
+        {
+          "time": "2026-04-15T05:07:23.487Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Check nhanh\" → \"Khóa không cho nhập proxy user:pass với note8\""
+        },
+        {
+          "time": "2026-04-15T05:21:53.377Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Sập nguồn phone\" → \"Sập nguồn phone, mất điều khiển\""
+        },
+        {
+          "time": "2026-04-15T05:24:42.920Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Sập nguồn phone, mất điều khiển\" → \"Sập nguồn phone, mất điều khiển kaflka asdkaskdj;sadj;alsjd;sad;sad\""
+        },
+        {
+          "time": "2026-04-15T05:24:52.800Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Sập nguồn phone, mất điều khiển kaflka asdkaskdj;sadj;alsjd;sad;sad\" → \"Sập nguồn phone, mất điều khiển\""
+        },
+        {
+          "time": "2026-04-15T08:06:11.750Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"thêm proxy 1\" → \"Thêm proxy 1\""
+        },
+        {
+          "time": "2026-04-16T03:52:57.306Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Thêm proxy 1\" → \"Thêm proxy user:pass bị sập nguồn phone\""
+        },
+        {
+          "time": "2026-04-16T03:53:00.762Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lý\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T08:16:57.810Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Thêm proxy user:pass bị sập nguồn phone\" → \"Thêm proxy dạng user:pass bị sập nguồn phone\""
+        },
+        {
+          "time": "2026-04-29T08:23:30.458Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Thêm proxy dạng user:pass bị sập nguồn phone\" → \"Thêm proxy dạng user:pass bị sập nguồn phone Note8\""
+        },
+        {
+          "time": "2026-04-29T09:08:29.601Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Hoàn thành\" → \"Đang xử lý\""
+        },
+        {
+          "time": "2026-04-29T09:24:09.013Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:24:10.550Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:24:59.525Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lí\" → \"Đã xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:25:38.685Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Đã test\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:25:40.141Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Chưa test\""
+        },
+        {
+          "time": "2026-04-29T09:28:02.054Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chưa test\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:28:03.750Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:28:05.095Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Đã test\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:28:06.477Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Chưa test\""
+        },
+        {
+          "time": "2026-04-29T09:28:18.589Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chưa test\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:46:05.460Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"(trống)\""
+        },
+        {
+          "time": "2026-04-29T09:52:13.846Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"chưa được, cần check lại vấn đề\""
+        },
+        {
+          "time": "2026-04-29T09:52:25.227Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"chưa được, cần check lại vấn đề\" → \"(trống)\""
+        }
+      ],
+      "testStatus": "Đã test",
+      "supportNote": ""
+    },
+    {
+      "name": "Không dùng auto click được",
+      "module": "Note 8",
+      "description": "Chạy 20p bị out, xung đột app Gem",
+      "type": "Logic",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Thùy",
+      "foundDate": "2026-04-14",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "Làm tính năng mới FixAutoclick xóa app Gem ( Note8 đang cần xử lí )",
+      "attachments": [
+        "file_mny6xdpniolh"
+      ],
+      "id": "BUG-0003",
+      "createdAt": "2026-04-14T05:34:42.461Z",
+      "updatedAt": "2026-04-29T09:50:47.232Z",
+      "completedDate": "2026-04-14T07:55:25.124Z",
+      "product": "GemCloudPhone",
+      "history": [
+        {
+          "time": "2026-04-16T03:50:52.467Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Không Auto click được\" → \"Không dùng auto click được\""
+        },
+        {
+          "time": "2026-04-16T05:01:37.409Z",
+          "action": "Cập nh��t",
+          "detail": "Ghi chú: \"Chơi roblox\" → \"Làm tính năng mới xóa\""
+        },
+        {
+          "time": "2026-04-16T05:03:16.839Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Làm tính năng mới xóa\" → \"Làm tính năng m�����i FixAutoclick xóa app Gem ( Note8 đang cần xử lí )\""
+        },
+        {
+          "time": "2026-04-29T09:28:13.685Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:28:16.367Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Chưa test\""
+        },
+        {
+          "time": "2026-04-29T09:45:47.364Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chưa test\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:45:50.252Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:50:47.232Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"(trống)\""
+        }
+      ],
+      "testStatus": "Đã test",
+      "supportNote": ""
+    },
+    {
+      "name": "Treo game nóng máy",
+      "module": "All",
+      "description": "Báo quá nhiệt khi treo lâu",
+      "type": "Hiệu năng",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thùy",
+      "foundDate": "2026-04-14",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [],
+      "id": "BUG-0004",
+      "createdAt": "2026-04-14T05:46:16.237Z",
+      "updatedAt": "2026-04-29T09:58:30.255Z",
+      "completedDate": "",
+      "product": "GemCloudPhone",
+      "history": [
+        {
+          "time": "2026-04-15T05:25:11.403Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có phương án\" → \"Đang xử lý\""
+        },
+        {
+          "time": "2026-04-15T05:25:13.098Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lý\" → \"Thông báo\""
+        },
+        {
+          "time": "2026-04-15T05:25:14.681Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Chưa có phương án\""
+        },
+        {
+          "time": "2026-04-15T05:42:58.537Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Báo quá nhiệt, out game\" → \"Báo quá nhiệt, out gam game\""
+        },
+        {
+          "time": "2026-04-15T05:43:12.594Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Báo quá nhiệt, out gam game\" → \"Báo quá nhiệt,out game\""
+        },
+        {
+          "time": "2026-04-16T04:11:28.262Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"TReo game nóng máy\" → \"Treo game or dùng lâu hay báo quá nhiệt máy\" | Mô tả: \"Báo quá nhiệt,out game\" → \"Báo quá nhiệt, out game, out tác vụ\" | Người TT: \"Thắng\" → \"Thùy\" | Ghi chú: \"Cần gấp\" → \"(trống)\""
+        },
+        {
+          "time": "2026-04-16T04:58:11.494Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Quang\" �� \"(trống)\""
+        },
+        {
+          "time": "2026-04-17T05:29:46.878Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Báo quá nhiệt, out game, out tác v�������\" → \"Báo quá nhiệt, out game, out tác vụ\""
+        },
+        {
+          "time": "2026-04-27T17:29:08.396Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Treo game or dùng lâu hay báo quá nhiệt máy\" → \"MẤt kết nối phone khi dùng cococ\" | Thiết bị: \"Z Flip 3\" → \"All\" | Mô tả: \"Báo quá nhiệt, out game, out tác v�����������������������\" → \"dùng cococ máy mất kết nối stream,\""
+        },
+        {
+          "time": "2026-04-27T17:30:13.459Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"MẤt kết nối phone khi dùng cococ\" → \"Treo game nóng máy\" | Mô tả: \"dùng cococ máy mất kết nối stream,\" → \"Báo quá nhiệt khi treo lâu\" | Loại lỗi: \"Hi��u năng\" → \"Hiệu năng\""
+        },
+        {
+          "time": "2026-04-27T17:38:35.306Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung b����nh\" → \"Trung bình\""
+        },
+        {
+          "time": "2026-04-28T02:59:57.137Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung b��nh\" → \"Trung bình\""
+        },
+        {
+          "time": "2026-04-28T07:33:36.209Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung b������nh\" → \"Trung bình\""
+        },
+        {
+          "time": "2026-04-29T08:03:32.443Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung b����������������nh\" → \"Trung bình\""
+        },
+        {
+          "time": "2026-04-29T09:19:24.950Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có P.A\" ��� \"Đã xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:19:26.446Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đã xử lí\" → \"Đang xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:58:30.255Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"(trống)\""
+        }
+      ],
+      "supportNote": ""
+    },
+    {
+      "name": "Mất stream khi dùng trình duyệt coccoc",
+      "module": "All",
+      "description": "Không stream được, mất kết nối. Admin view bình thường or đổi trình duyệt khác",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-15",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "file_mnzr0kpr8dqn"
+      ],
+      "id": "BUG-0007",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-15T07:48:20.200Z",
+      "updatedAt": "2026-04-16T05:19:56.821Z",
+      "history": [
+        {
+          "time": "2026-04-15T07:48:20.200Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Mất stream khi dùng trình duyệt coccoc\""
+        },
+        {
+          "time": "2026-04-15T07:49:27.262Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Không stream được, mất kết nối.\nAdmin view bình thường\" → \"Không stream được, mất kết nối. Admin view bình thường\""
+        },
+        {
+          "time": "2026-04-16T05:11:30.798Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Đang xử lý\""
+        },
+        {
+          "time": "2026-04-16T05:19:56.821Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Không stream được, mất kết nối. Admin view bình thư��ng\" → \"Không stream được, mất kết nối. Admin view bình thường or ��ổi trình duyệt khác\""
+        }
+      ],
+      "completedDate": ""
+    },
+    {
+      "name": "Tắt nguồn phone không mở lại được",
+      "module": "All",
+      "description": "Phone mất kết nối khi tắt nguồn",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Chưa có P.A",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-16",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [],
+      "id": "BUG-0008",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-16T04:27:38.720Z",
+      "updatedAt": "2026-04-16T08:05:23.619Z",
+      "history": [
+        {
+          "time": "2026-04-16T04:27:38.720Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Tắt nguồn phone không mở lại được\""
+        },
+        {
+          "time": "2026-04-16T08:05:23.619Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Chưa có phương án\""
+        }
+      ],
+      "completedDate": ""
+    },
+    {
+      "name": "Chưa tự động reset data khi máy hết hạn",
+      "module": "Note 8",
+      "description": "Máy vẫn còn nguyên app và data sau khi thuê Đang tạm xóa bằng tay",
+      "type": "Logic",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thùy",
+      "foundDate": "2026-04-16",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [],
+      "id": "BUG-0009",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-16T05:00:20.426Z",
+      "updatedAt": "2026-04-29T09:44:18.971Z",
+      "history": [
+        {
+          "time": "2026-04-16T05:00:20.426Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Chưa tự động reset data khi m������y hết h������n\""
+        },
+        {
+          "time": "2026-04-16T05:00:26.936Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Máy vẫn còn nguyên app và data sau khi thuê\nĐang tạm xóa bằng tay\" → \"Máy vẫn còn nguyên app và data sau khi thuê Đang tạm xóa bằng tay\""
+        },
+        {
+          "time": "2026-04-16T08:05:24.870Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Chưa có phương án\""
+        },
+        {
+          "time": "2026-04-29T09:44:00.812Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T09:44:03.828Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có P.A\" → \"Đang xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:44:06.106Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Hoàng\" → \"Quang\""
+        },
+        {
+          "time": "2026-04-29T09:44:07.628Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lí\" → \"Đã xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:44:10.395Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đã xử lí\" → \"Đang xử lí\""
+        },
+        {
+          "time": "2026-04-29T09:44:12.970Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Quang\" → \"Tùng\""
+        },
+        {
+          "time": "2026-04-29T09:44:18.971Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Tùng\" → \"(trống)\""
+        }
+      ],
+      "completedDate": ""
+    },
+    {
+      "name": "Chất lượng hình ảnh thấp khi sử dụng or chơi game",
+      "module": "All",
+      "description": "Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư���ng giật lag",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-16",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "file_mo17gzhqo0zm"
+      ],
+      "id": "BUG-0010",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-16T08:16:44.930Z",
+      "updatedAt": "2026-04-29T10:42:12.094Z",
+      "history": [
+        {
+          "time": "2026-04-16T08:16:44.930Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Chất lượng hình ảnh thấp khi sử dụng or chơi game\""
+        },
+        {
+          "time": "2026-04-18T03:47:14.811Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-18T03:47:18.526Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T09:53:13.323Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T10:37:36.764Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư���ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag\""
+        },
+        {
+          "time": "2026-04-29T10:42:12.094Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư���ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag\""
+        }
+      ],
+      "completedDate": "2026-04-18T03:47:14.811Z",
+      "testStatus": "Đã test"
+    },
+    {
+      "name": "Lỗi xoay ngang màn hình",
+      "module": "All",
+      "description": "Sai logic xoay ngang với app admin và logic dùng thật",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-16",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "file_mo17hd8ax569"
+      ],
+      "id": "BUG-0011",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-16T08:17:55.833Z",
+      "updatedAt": "2026-04-29T09:53:39.948Z",
+      "history": [
+        {
+          "time": "2026-04-16T08:17:55.833Z",
+          "action": "Tạo m�������i",
+          "detail": "Tạo lỗi \"Lỗi xoay ngang màn hình\""
+        },
+        {
+          "time": "2026-04-18T03:47:16.650Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-18T03:47:19.645Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T09:53:19.035Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:53:39.948Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"(trống)\""
+        }
+      ],
+      "completedDate": "2026-04-18T03:47:16.650Z",
+      "testStatus": "Đã test",
+      "supportNote": ""
+    },
+    {
+      "name": "Mất profile khi nâng lên bản 5.1",
+      "module": "All",
+      "description": "Khách gặp tình trạng mất profile khi nâng lên bản 5.1",
+      "type": "Logic",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-16",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "Thêm cơ chế backup db trước khi cap nhật version",
+      "attachments": [],
+      "id": "BUG-0012",
+      "product": "GemLogin",
+      "createdAt": "2026-04-18T02:59:11.605Z",
+      "updatedAt": "2026-04-20T08:13:09.999Z",
+      "history": [
+        {
+          "time": "2026-04-18T02:59:11.605Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Mất profile khi nâng lên bran 5.1\""
+        },
+        {
+          "time": "2026-04-18T03:08:54.104Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có phư��ng án\" → \"Thông báo\""
+        },
+        {
+          "time": "2026-04-18T03:09:10.778Z",
+          "action": "Cập nhật",
+          "detail": "Tên lỗi: \"Mất profile khi nâng lên bran 5.1\" → \"Mất profile khi nâng lên bản 5.1\""
+        },
+        {
+          "time": "2026-04-20T08:12:31.999Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-20T08:12:36.519Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Đã\""
+        },
+        {
+          "time": "2026-04-20T08:12:46.516Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Đã\" → \"Thêm cơ\""
+        },
+        {
+          "time": "2026-04-20T08:13:09.999Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Thêm cơ\" → \"Thêm cơ chế backup db trước khi cap nhật version\""
+        }
+      ],
+      "completedDate": "2026-04-20T08:12:31.998Z"
+    },
+    {
+      "name": "Không cài được file zip extension của omo captcha",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-17",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "Ko gặp vấn đề này",
+      "attachments": [],
+      "id": "BUG-0013",
+      "product": "GemLogin",
+      "createdAt": "2026-04-18T03:06:13.068Z",
+      "updatedAt": "2026-04-21T09:38:37.282Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:06:13.068Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Không cài được file zip extension của omo captcha\""
+        },
+        {
+          "time": "2026-04-18T03:40:50.040Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Ko gặp vấn đề này\""
+        },
+        {
+          "time": "2026-04-21T09:38:37.282Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        }
+      ],
+      "completedDate": "2026-04-21T09:38:37.281Z"
+    },
+    {
+      "name": "Task vụ cũ tạo từ lâu giờ chỉnh sửa lại vẫn thấy phone đã hết hạn có trong danh sách chọn phone",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/0a261e5b30ec0cef.png"
+      ],
+      "id": "BUG-0015",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:16:50.407Z",
+      "updatedAt": "2026-04-18T03:16:50.407Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:16:50.407Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Task vụ cũ tạo từ lâu giờ chỉnh sửa l�����i vẫn thấy phone đã h����t hạn có trong danh sách chọn phone\""
+        }
+      ]
+    },
+    {
+      "name": "Không điền được số lượng phone muốn thuê là 2, nhập vào thì nhảy ra 9",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "Lỗi đâu, bấm vượt quá số lượng máy thì nó ra tối đa máy hiện có",
+      "attachments": [
+        "/uploads/b036771f36b07210.png"
+      ],
+      "id": "BUG-0016",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:20:37.182Z",
+      "updatedAt": "2026-04-29T09:08:01.580Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:20:37.182Z",
+          "action": "Tạo mới",
+          "detail": "Tạo l������i \"Không điền ���������ược số lượng phone muốn thuê là 2, nhập vào thì nhảy ra 9\""
+        },
+        {
+          "time": "2026-04-18T03:44:09.115Z",
+          "action": "Cập nhật",
+          "detail": "Người TT: \"(trống)\" → \"Thắng\""
+        },
+        {
+          "time": "2026-04-21T03:11:51.697Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Lỗi đâu, bấm vượt quá số lượng máy thì nó ra tối đa máy hiện có\""
+        },
+        {
+          "time": "2026-04-21T03:11:59.188Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" ��� \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-21T03:12:00.658Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T09:08:01.580Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Lỗi đâu, bấm vư���t quá số lư���ng máy thì nó ra tối đa máy hiện có\" → \"Lỗi đâu, bấm vượt quá số lượng máy thì nó ra tối đa máy hiện có\""
+        }
+      ],
+      "completedDate": "2026-04-21T03:11:59.188Z"
+    },
+    {
+      "name": "Phone đang mất kết nối chắc chắn không chạy được nhưng log vẫn báo đã chạy thành công",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang x��� lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/ffd70171c7df949f.png"
+      ],
+      "id": "BUG-0017",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:31:23.484Z",
+      "updatedAt": "2026-04-18T03:31:23.484Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:31:23.484Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Phone đang mất kết nối chắc chắn không chạy đ��ợc nhưng log vẫn báo đã chạy thành công\""
+        }
+      ]
+    },
+    {
+      "name": "Phone không tự điều chỉnh được bàn phím cho đúng",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/5c546cf5e794e49c.png"
+      ],
+      "id": "BUG-0018",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:44:05.177Z",
+      "updatedAt": "2026-04-18T03:44:05.177Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:44:05.177Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Phone không tự đi���u chỉnh được bàn phím cho đúng\""
+        }
+      ]
+    },
+    {
+      "name": "Nút xoay không xoay màn hình phone theo mà xoay màn hình hiển thị",
+      "module": "All",
+      "description": "Xoay xong khó dùng và khó nhìn",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/641f9cfafb0407a5.png"
+      ],
+      "id": "BUG-0019",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:45:35.193Z",
+      "updatedAt": "2026-04-18T03:45:35.193Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:45:35.193Z",
+          "action": "Tạo m�������i",
+          "detail": "Tạo lỗi \"Nút xoay không xoay màn hình phone theo mà xoay m��n hình hiển thị\""
+        }
+      ]
+    },
+    {
+      "name": "Phone đang disconnect vẫn hiện trong danh sách online",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/84d50f71bd392434.png"
+      ],
+      "id": "BUG-0020",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:46:46.856Z",
+      "updatedAt": "2026-04-29T09:53:07.266Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:46:46.856Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Phone đang disconnect v��n hiện trong danh sách online\""
+        },
+        {
+          "time": "2026-04-27T17:30:23.563Z",
+          "action": "Cập nhật",
+          "detail": "Loại lỗi: \"Giao di��n\" → \"Giao diện\""
+        },
+        {
+          "time": "2026-04-29T09:53:05.266Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Chờ test\""
+        },
+        {
+          "time": "2026-04-29T09:53:06.371Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Chờ test\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T09:53:07.266Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"Đã test\" → \"Chưa test\""
+        }
+      ],
+      "testStatus": "Chưa test"
+    },
+    {
+      "name": "Thỉnh thoảng đang xem phone thì lại bị như hình",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/130ecca2ce2c08e8.png"
+      ],
+      "id": "BUG-0021",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:47:31.188Z",
+      "updatedAt": "2026-04-18T03:47:31.188Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:47:31.188Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Thỉnh tho���ng đang xem phone thì lại bị như hình\""
+        }
+      ]
+    },
+    {
+      "name": "đang chọn 3 phone mà chuột phải chỉ hiển thị giao diện của chọn 1 phone",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "Dùng sync đi Bấm chuột phải vào phone nó hiện ra menu thêm vào group thôi, sync thì liên quan gì - Thắng",
+      "attachments": [
+        "/uploads/f2cc7f2a13267585.png"
+      ],
+      "id": "BUG-0022",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:49:31.492Z",
+      "updatedAt": "2026-04-27T17:36:36.194Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:49:31.492Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"đang chọn 3 phone mà chuột phải chỉ hiển thị giao diện của chọn 1 phone\""
+        },
+        {
+          "time": "2026-04-18T03:57:45.794Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Dùng sync đi\""
+        },
+        {
+          "time": "2026-04-18T03:58:37.297Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Dùng sync đi\" → \"Dùng sync đi\n\nBấm chuột phải vào phone nó hiện ra menu thêm v��o group thôi, sync thì liên quan gì - Th��ng\""
+        },
+        {
+          "time": "2026-04-21T03:17:18.415Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"Dùng sync đi\n\nBấm chuột phải vào phone nó hiện ra menu thêm vào group thôi, sync thì liên quan gì - Thắng\" → \"Dùng sync đi Bấm chuột phải vào phone nó hiện ra menu thêm vào group thôi, sync thì liên quan gì - Thắng\""
+        },
+        {
+          "time": "2026-04-27T17:36:36.194Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        }
+      ],
+      "completedDate": "2026-04-27T17:36:36.194Z"
+    },
+    {
+      "name": "Không xóa được phone khỏi group, group ko edit được name",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/efdc58ac019e0035.png"
+      ],
+      "id": "BUG-0023",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:50:35.066Z",
+      "updatedAt": "2026-04-18T03:50:35.066Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:50:35.066Z",
+          "action": "Tạo mới",
+          "detail": "T��o lỗi \"Không xóa được phone khỏi group, group ko edit được name\""
+        }
+      ]
+    },
+    {
+      "name": "Xóa group xong giao diện hiển thị như hình mà không hiển thị các phone ở chế độ all",
+      "module": "All",
+      "description": "Bấm reload lại phone không hiển thị lại",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/f5f42fbf73aebadb.png"
+      ],
+      "id": "BUG-0024",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:51:27.193Z",
+      "updatedAt": "2026-04-28T09:56:38.423Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:51:27.193Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Xóa group xong giao diện hiển thị như hình mà không hiển thị các phone ở chế độ all\""
+        },
+        {
+          "time": "2026-04-18T03:51:56.140Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"(trống)\" ����� \"Bấm reload lại phone cũng không hiển thị lại\""
+        },
+        {
+          "time": "2026-04-27T17:37:48.903Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Bấm reload lại phone c��ng không hiển thị lại\" → \"Bấm reload lại phone không hiển thị l���i\""
+        },
+        {
+          "time": "2026-04-28T09:56:38.423Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        }
+      ],
+      "completedDate": "2026-04-28T09:56:38.423Z"
+    },
+    {
+      "name": "Setting nửa anh nửa việt, cũng chẳng thay đổi theo ùy chọn ngôn ngữ",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/0f22d7affc5b3127.png"
+      ],
+      "id": "BUG-0025",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:56:00.598Z",
+      "updatedAt": "2026-04-29T08:51:13.303Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:56:00.598Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Setting nửa anh nửa việt, cũng chẳng thay đổi theo ùy chọn ngôn ngữ\""
+        },
+        {
+          "time": "2026-04-28T09:56:32.088Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-28T09:56:35.140Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Hoàn thành\" → \"Thông báo\""
+        },
+        {
+          "time": "2026-04-29T08:51:13.303Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung bình\" → \"Thấp\""
+        }
+      ],
+      "completedDate": ""
+    },
+    {
+      "name": "Block ko có fallback",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/c6993f7d0f8ce9bd.png"
+      ],
+      "id": "BUG-0026",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:57:39.507Z",
+      "updatedAt": "2026-04-18T03:57:50.385Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:57:39.507Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Block ko có fallback\""
+        },
+        {
+          "time": "2026-04-18T03:57:50.385Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung bình\" → \"Thấp\""
+        }
+      ]
+    },
+    {
+      "name": "Inspector không hoạt động",
+      "module": "All",
+      "description": "chỉ lỗi với phone mã thuê 365, các phone khác hoạt động bình thường ko lỗi",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/c07ac933ee028557.png"
+      ],
+      "id": "BUG-0027",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T03:59:47.032Z",
+      "updatedAt": "2026-04-29T10:28:18.918Z",
+      "history": [
+        {
+          "time": "2026-04-18T03:59:47.032Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Inspector không hoạt động\""
+        },
+        {
+          "time": "2026-04-18T04:02:02.218Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"(trống)\" → \"chỉ lỗi với phone mã thuê 365, các phone khác hoạt động bình thường ko lỗi\""
+        },
+        {
+          "time": "2026-04-21T03:06:50.787Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-21T03:06:55.797Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-27T17:38:00.669Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"chỉ lỗi với phone mã thuê 365, các phone khác hoạt đ���ng bình thường ko lỗi\" → \"chỉ lỗi với phone mã thuê 365, các phone khác hoạt ��ộng bình thường ko lỗi\""
+        },
+        {
+          "time": "2026-04-29T10:28:18.918Z",
+          "action": "Cập nhật",
+          "detail": "Người TT: \"(trống)\" → \"Thắng\""
+        }
+      ],
+      "completedDate": "2026-04-21T03:06:50.786Z"
+    },
+    {
+      "name": "Tạo backup không hoạt động",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "Chưa dùng",
+      "attachments": [
+        "/uploads/a7d8b5a9974a6212.png"
+      ],
+      "id": "BUG-0028",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:03:59.320Z",
+      "updatedAt": "2026-04-28T09:57:04.219Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:03:59.320Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Tạo backup không hoạt động\""
+        },
+        {
+          "time": "2026-04-28T09:57:04.219Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Chưa dùng\""
+        }
+      ]
+    },
+    {
+      "name": "Fake proxy không hoạt động",
+      "module": "All",
+      "description": "Proxy nhập xong thì mạng ko đổi ip theo địa chỉ của proxy",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "test k thấy, check lại xem có app không",
+      "attachments": [
+        "/uploads/0d344cc1a7d3ed7d.png"
+      ],
+      "id": "BUG-0029",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:07:17.913Z",
+      "updatedAt": "2026-04-29T09:54:42.041Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:07:17.913Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Fake proxy không hoạt động\""
+        },
+        {
+          "time": "2026-04-27T17:38:11.076Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Trung bình\" → \"Nghiêm trọng\""
+        },
+        {
+          "time": "2026-04-28T10:02:08.350Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"test k thấy, check lại xem có app không\""
+        },
+        {
+          "time": "2026-04-28T10:02:09.783Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T09:54:30.809Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T09:54:42.041Z",
+          "action": "Cập nhật",
+          "detail": "Người TT: \"(trống)\" → \"Thắng\""
+        }
+      ],
+      "completedDate": "2026-04-28T10:02:09.783Z"
+    },
+    {
+      "name": "Phone đang khởi động vẫn cho chọn được để chạy script",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/80f5d32405cfd769.png"
+      ],
+      "id": "BUG-0030",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:09:17.699Z",
+      "updatedAt": "2026-04-18T04:09:17.699Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:09:17.699Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Phone đang khởi động v��n cho chọn được để chạy script\""
+        }
+      ]
+    },
+    {
+      "name": "Nút hiển thị vướng víu",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-18",
+      "assignee": "Hoàng",
+      "deadline": "",
+      "devNote": "Có nút X để làm gì",
+      "attachments": [
+        "/uploads/b987e880adee77f7.png"
+      ],
+      "id": "BUG-0032",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:17:02.319Z",
+      "updatedAt": "2026-04-29T10:28:59.278Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:17:02.319Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Nút hiển thị vướng víu\""
+        },
+        {
+          "time": "2026-04-18T04:45:06.189Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Có nút X để làm gì\""
+        },
+        {
+          "time": "2026-04-27T17:36:23.907Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T10:22:36.727Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T10:22:40.272Z",
+          "action": "Cập nhật",
+          "detail": "Người TT: \"(trống)\" → \"Thắng\""
+        },
+        {
+          "time": "2026-04-29T10:28:59.278Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Nghiêm trọng\" → \"Thấp\""
+        }
+      ],
+      "completedDate": "2026-04-27T17:36:23.907Z"
+    },
+    {
+      "name": "Giao diện không có nút đăng ký",
+      "module": "All",
+      "description": "Thế lúc gửi link giới thiệu chưa có tài khoản thì làm thế nào?",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/890240d073b00ff9.png"
+      ],
+      "id": "BUG-0033",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:19:37.920Z",
+      "updatedAt": "2026-04-29T10:29:06.734Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:19:37.920Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Giao diện không có nút đăng ký\""
+        },
+        {
+          "time": "2026-04-29T10:29:06.734Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Nghiêm trọng\" → \"Thấp\""
+        }
+      ]
+    },
+    {
+      "name": "Bấm vào nâng cấp thì không hiển thị giao diện mua nâng cấp để tăng số lượng phone chạy đồng thời mà ra giao diện thuê phone",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "Chưa có gói nâng cấp",
+      "attachments": [
+        "/uploads/8f692eb019eda051.png"
+      ],
+      "id": "BUG-0034",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:22:49.015Z",
+      "updatedAt": "2026-04-29T10:28:50.014Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:22:49.015Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Bấm vào nâng cấp thì không hiển thị giao diện mua nâng cấp để tăng số lượng phone chạy đồng thời mà ra giao diện thuê phone\""
+        },
+        {
+          "time": "2026-04-20T10:40:10.874Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú: \"(trống)\" → \"Chưa có gói nâng cấp\""
+        },
+        {
+          "time": "2026-04-27T17:36:30.442Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T10:28:50.014Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Nghiêm trọng\" → \"Thấp\""
+        }
+      ],
+      "completedDate": "2026-04-27T17:36:30.442Z"
+    },
+    {
+      "name": "Phone mã 345 không nhận lệnh mở youtube mặc dù cùng loại với 2 phone còn lại, và 2 phone còn lại vẫn mở youtube",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đang xử lí",
+      "reporter": "",
+      "foundDate": "2026-04-18",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/8ca541b2d80f6325.png"
+      ],
+      "id": "BUG-0035",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-18T04:24:20.692Z",
+      "updatedAt": "2026-04-29T10:29:22.063Z",
+      "history": [
+        {
+          "time": "2026-04-18T04:24:20.692Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Phone mã 345 không nhận lệnh mở youtube mặc dù cùng loại với 2 phone còn lại, và 2 phone còn lại vẫn mở youtube\""
+        },
+        {
+          "time": "2026-04-29T10:29:22.063Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Nghiêm trọng\" → \"Thấp\""
+        }
+      ]
+    },
+    {
+      "name": "Zoom page báo lỗi devtoool",
+      "module": "All",
+      "description": "Zoom page báo lỗi devtoool",
+      "type": "Giao diện",
+      "severity": "Thấp",
+      "status": "Đã xử lí",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-20",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/55aeffead08f413a.png"
+      ],
+      "id": "BUG-0037",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-20T10:12:43.548Z",
+      "updatedAt": "2026-04-29T10:28:38.488Z",
+      "history": [
+        {
+          "time": "2026-04-20T10:12:43.548Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Zoom page báo lỗi devtoool\""
+        },
+        {
+          "time": "2026-04-28T09:49:35.350Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T10:28:38.488Z",
+          "action": "Cập nhật",
+          "detail": "Mức độ: \"Nghiêm trọng\" → \"Thấp\""
+        }
+      ],
+      "completedDate": "2026-04-28T09:49:35.348Z"
+    },
+    {
+      "name": "Sai logic hiển thị số lượng phone thực - Đấu phone",
+      "module": "All",
+      "description": "Số lượng phone thực tế sai so với sl thật có",
+      "type": "Logic",
+      "severity": "Nghiêm trọng",
+      "status": "Đã xử lí",
+      "reporter": "Tiến",
+      "foundDate": "2026-04-25",
+      "assignee": "Tùng",
+      "deadline": "",
+      "devNote": "10p update 1 lần",
+      "attachments": [],
+      "id": "BUG-0038",
+      "product": "GemCloudPhone",
+      "createdAt": "2026-04-27T17:35:26.147Z",
+      "updatedAt": "2026-04-29T10:27:48.296Z",
+      "history": [
+        {
+          "time": "2026-04-27T17:35:26.147Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Sai logic hiển thị số lượng phone thực - Đấu phone\""
+        },
+        {
+          "time": "2026-04-28T09:48:37.070Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-04-29T10:23:09.267Z",
+          "action": "Cập nhật",
+          "detail": "TT Test: \"(trống)\" → \"Đã test\""
+        },
+        {
+          "time": "2026-04-29T10:23:25.127Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Hoàng\""
+        },
+        {
+          "time": "2026-04-29T10:27:33.975Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Hoàng\" → \"Tùng\""
+        },
+        {
+          "time": "2026-04-29T10:27:42.754Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú XL: \"(trống)\" → \"10p update 1 lần\""
+        },
+        {
+          "time": "2026-04-29T10:27:47.032Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đã xử lí\" → \"Chưa có P.A\""
+        },
+        {
+          "time": "2026-04-29T10:27:48.296Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có P.A\" → \"Đã xử lí\""
+        }
+      ],
+      "completedDate": "2026-04-29T10:27:48.296Z",
+      "testStatus": "Đã test"
+    },
+    {
+      "name": "Giao diện chậm trên màn profile và trong m��n viết script",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-28",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [],
+      "id": "BUG-0039",
+      "product": "GemLogin",
+      "createdAt": "2026-04-28T06:54:28.876Z",
+      "updatedAt": "2026-04-28T06:54:28.876Z",
+      "history": [
+        {
+          "time": "2026-04-28T06:54:28.876Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Giao diện chậm trên màn profile và trong màn viết script\""
+        }
+      ]
+    },
+    {
+      "name": "Lỗi không đăng nhập được facebook, tự động logout sau khi đăng nhập (cloud - local có gặp nhưng chuyển về chrome 133 sẽ kko bị nữa)",
+      "module": "All",
+      "description": "https://drive.google.com/file/d/10MbjDpX_b5NwW3cdDkHgHPLFZdgRJZcI/view?usp=sharing",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-28",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [],
+      "id": "BUG-0040",
+      "product": "GemLogin",
+      "createdAt": "2026-04-28T06:55:51.096Z",
+      "updatedAt": "2026-04-28T06:55:51.096Z",
+      "history": [
+        {
+          "time": "2026-04-28T06:55:51.096Z",
+          "action": "Tạo mới",
+          "detail": "Tạo l���i \"Lỗi không đăng nhập được facebook, tự động logout sau khi đăng nhập (cloud - local c�� gặp nhưng chuyển về chrome 133 sẽ kko bị nữa)\""
+        }
+      ]
+    },
+    {
+      "name": "Lỗi không mở được tin nhắn outlook với chrome 137 của mac",
+      "module": "All",
+      "description": "",
+      "type": "Giao diện",
+      "severity": "Nghiêm trọng",
+      "status": "Đang xử lí",
+      "reporter": "Thắng",
+      "foundDate": "2026-04-28",
+      "assignee": "",
+      "deadline": "",
+      "devNote": "",
+      "attachments": [
+        "/uploads/b231f2faf5d83644.png"
+      ],
+      "id": "BUG-0041",
+      "product": "GemLogin",
+      "createdAt": "2026-04-28T06:57:03.224Z",
+      "updatedAt": "2026-04-28T06:57:03.224Z",
+      "history": [
+        {
+          "time": "2026-04-28T06:57:03.224Z",
+          "action": "Tạo mới",
+          "detail": "Tạo lỗi \"Lỗi không mở được tin nhắn outlook với chrome 137 của mac\""
+        }
+      ]
+    }
+  ],
+  "improvements": [
+    {
+      "name": "Tạo Sự kiện -> Tính điểm đổi thưởng phone",
+      "description": "Làm nhiệm vụ nhận điểm đổi phone free",
+      "priority": "Trung bình",
+      "status": "Đã duyệt",
+      "proposer": "Minh T",
+      "id": "IMP-0001",
+      "createdAt": "2026-04-16T08:07:31.002Z",
+      "assignee": "Tùng"
+    },
+    {
+      "name": "Cộng % khi nạp $",
+      "description": "VD: Khi nạp 100k sẽ được thêm 15% thành 115k",
+      "priority": "Trung bình",
+      "status": "Ý tưởng",
+      "proposer": "Minh T",
+      "id": "IMP-0002",
+      "createdAt": "2026-04-16T08:09:58.339Z",
+      "assignee": "Tùng"
+    }
+  ],
+  "products": [
+    "GemCloudPhone",
+    "GemLogin"
+  ],
+  "devList": [
+    "Quang",
+    "Tung",
+    "Hoang"
+  ],
+  "reporterList": [
+    "Tien",
+    "Thuy",
+    "Thang"
+  ],
+  "bugTypes": [
+    "Giao dien",
+    "Logic",
+    "Hieu nang",
+    "Sap ung dung",
+    "Khac"
+  ],
+  "activeProduct": "GemCloudPhone"
+}

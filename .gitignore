@@ -1,0 +1,21 @@
+# Binary uploads (ảnh/video — kích thước lớn, không nên track)
+uploads/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local backups & temp
+*.tmp
+*.bak
+backups/
+data.json.tmp
+
+# English learn (thư mục riêng không liên quan dự án)
+English learn/
