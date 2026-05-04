@@ -1427,3 +1427,72 @@ body {
     .ds-bug-item { grid-template-columns: 1fr; }
     .ds-bug-right { align-items: flex-start; flex-direction: row; gap: 8px; }
 }
+
+/* ===== PAGINATOR ===== */
+.paginator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 0;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-light);
+}
+.paginator .pg-info {
+    margin-right: auto;
+    font-weight: 500;
+    color: var(--text);
+}
+.paginator .pg-btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    padding: 6px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    min-width: 34px;
+    transition: all 0.15s;
+}
+.paginator .pg-btn:hover:not(.disabled):not(.active) {
+    background: #f1f5f9;
+    border-color: var(--primary);
+}
+.paginator .pg-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+}
+.paginator .pg-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.paginator .pg-ellipsis {
+    color: var(--text-light);
+    padding: 0 2px;
+}
+
+/* ===== ATTACHMENT WRAP (with copy link button) ===== */
+.att-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 4px;
+}
+.att-copy {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+}
+.att-copy:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}

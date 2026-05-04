@@ -3,15 +3,85 @@
 > File này commit vào git, share cho mọi dev cùng dùng Claude Code trong dự án này.
 
 ## Tổng quan
-Web app quản lý lỗi & cải tiến sản phẩm, UI tiếng Việt. Vanilla JS + Node `http` server, **không framework, không build step, không npm dependency**. Mở `node server.js` là chạy.
+Web app quản lý lỗi & cải tiến sản phẩm, UI tiếng Việt. Vanilla JS FE + Node BE.
 
-**Đối tượng:** Support tạo bug → Dev xử lý. Team chia sẻ qua LAN (`0.0.0.0:3000`).
+**Đối tượng:** Support tạo bug → Dev xử lý. Team chia sẻ qua LAN hoặc datacenter Ubuntu.
+
+**Hai giai đoạn của codebase:**
+- **Legacy (`server.js` ở root + `data.json`):** code MVP, vanilla JS không framework, không npm dep. Vẫn chạy được.
+- **v2 (`src/` + SQLite):** đang refactor sang kiến trúc có 8 seam để scale tới 10k bug, đa team, SaaS sau này. Phải đọc mục "Architecture seams" bên dưới TRƯỚC khi sửa code trong `src/`.
+
+## ⚠️ 8 Architecture Seams — KHÔNG được bypass
+
+Mỗi seam là 1 ranh giới được đặt CỐ Ý để tương lai migrate không phải đập đi làm lại. Vi phạm 1 seam = phá compat của giai đoạn sau.
+
+| # | Seam | Vị trí | Quy tắc bất biến |
+|---|------|--------|------------------|
+| 1 | **DAL** | `src/db/*.js` | Mọi SQL nằm ở đây. Handler/middleware KHÔNG `require('better-sqlite3')` trực tiếp. Đổi DB → sửa file này, không sửa handler. |
+| 2 | **SQL chuẩn ANSI** | `src/migrations/*.sql` | Tránh AUTOINCREMENT, WITHOUT ROWID, STRICT (SQLite-only). Boolean = INTEGER 0/1. Để pgloader chuyển Postgres không vướng. |
+| 3 | **workspace_id mọi bảng** | schema | Mọi bảng business có `workspace_id TEXT NOT NULL DEFAULT 'default'`. Mọi DAL function NHẬN `workspace_id` ở **tham số đầu**, KHÔNG default. |
+| 4 | **ID = ULID + display_number per workspace** | `src/db/bugs.js`, `improvements.js` | `id` = `'BUG-' + ulid()` lưu nội bộ (globally unique). `display_number` = MAX+1 per workspace, hiển thị UI giữ UX cũ `BUG-0042`. |
+| 5 | **API versioning `/api/v1/`** | `src/server.js` | Mọi route mới đặt dưới prefix này. Sau v2 thì v1 vẫn chạy → client cũ không vỡ. |
+| 6 | **Storage interface** | `src/storage/index.js` | Handler chỉ gọi `storage.save/delete/readStream`, KHÔNG `fs` thẳng. Đổi local → S3 = đổi env `STORAGE_DRIVER`, code không sửa. |
+| 7 | **Config qua env** | `src/config/index.js` + `.env` | KHÔNG hardcode hằng số (PORT, đường dẫn, secret). Đổi môi trường = đổi `.env`. |
+| 8 | **Structured logging** | `src/logger.js` (pino) | Logic dùng `logger.info({ event, ...meta })`, KHÔNG `console.log`. Output JSON line, ship Loki/ELK dễ. |
+
+**Seam bổ sung (chưa implement, có chỗ trống):**
+- **A. Auth middleware** (`src/middleware/auth.js`): stub trả `workspace='default'`. Bật JWT ở giai đoạn 2, **không sửa handler**.
+- **B. Domain events** (`src/events/index.js`): emit `bug.created` etc. Subscriber thêm sau (email, Slack, webhook) **không đụng logic chính**.
+- **C. Audit log** (`src/db/auditLog.js`): bảng có sẵn, chỉ ghi khi `AUDIT_ENABLED=true`.
+- **D. Migration framework** (`src/migrations/runner.js`): mỗi schema change = 1 file `NNN_*.sql`, idempotent, có bảng `schema_migrations`.
+
+## Lộ trình giai đoạn (đừng phá lộ trình này)
+
+| Giai đoạn | Scope | Đã chuẩn bị |
+|-----------|-------|-------------|
+| 1 (hiện tại) | Internal team, 10k bugs, datacenter Ubuntu | SQLite + WAL + 8 seam |
+| 2 | Public Internet, JWT auth, email notify | Stub auth + events đã có |
+| 3 | Multi-tenant SaaS | `workspace_id` + ULID đã sẵn |
+| 4 | Postgres + S3 + scale lớn | DAL + storage interface đã sẵn |
+
+Mỗi bước nhảy chỉ thay 1 lớp. KHÔNG được làm "tiện thể refactor luôn cho đẹp" — sẽ phá lộ trình.
 
 ## Stack
-- FE: `index.html` + `app.js` (~2.2k dòng, single-file) + `style.css`.
-- BE: `server.js` (~200 dòng, chỉ dùng Node core: `http`, `fs`, `path`, `crypto`).
-- DB: `data.json` ở root.
-- File upload: `uploads/` (mới) + IndexedDB browser (legacy, đang migrate).
+**Legacy (root):**
+- FE: `index.html` + `app.js` + `style.css` (vanilla).
+- BE: `server.js` (Node core, không dependency).
+- DB: `data.json`.
+
+**v2 (`src/` + npm dep tối thiểu):**
+- BE: `src/server.js` (entry mỏng) → `src/db/` (DAL) → `better-sqlite3` (WAL mode).
+- File: `src/storage/` interface (local hôm nay, S3 sau).
+- Config: `src/config/` + `.env`.
+- Log: `src/logger.js` (pino JSON).
+- Migration: `src/migrations/runner.js` + file `NNN_*.sql`.
+- Dependencies: `better-sqlite3`, `dotenv`, `pino`, `ulid`. KHÔNG thêm Express/ORM.
+
+**Layout `src/`:**
+```
+src/
+├── config/index.js          # env loader (Seam #7)
+├── logger.js                # pino (Seam #8)
+├── db/
+│   ├── index.js             # connection + DAL re-export (Seam #1)
+│   ├── bugs.js              # workspace_id ở tham số đầu (Seam #3, #4)
+│   ├── improvements.js
+│   ├── meta.js              # products, devList, ...
+│   └── auditLog.js          # ghi khi AUDIT_ENABLED=true (Seam #C)
+├── storage/
+│   ├── index.js             # facade theo STORAGE_DRIVER (Seam #6)
+│   ├── local.js             # filesystem
+│   └── s3.js                # stub giai đoạn 4
+├── middleware/
+│   └── auth.js              # stub giai đoạn 1, JWT giai đoạn 2 (Seam #A)
+├── events/
+│   └── index.js             # bus + audit subscriber (Seam #B)
+├── migrations/
+│   ├── runner.js            # `npm run migrate` (Seam #D)
+│   ├── 001_init.sql         # schema baseline ANSI (Seam #2)
+│   └── 002_legacy_import.js # import data.json → SQLite 1 lần
+└── server.js                # HTTP entry, route /api/v1/... (Seam #5)
+```
 
 ## Cấu trúc app.js (theo thứ tự đọc)
 1. `DataSync` (~L8) — load/sync server, auto refresh poll 10s.

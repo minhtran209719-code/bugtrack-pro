@@ -17,6 +17,18 @@ Thumbs.db
 backups/
 data.json.tmp
 
+# SQLite
+data.db
+data.db-wal
+data.db-shm
+data.json.imported
+
+# Env / secrets
+.env
+
+# Logs
+*.log
+
 # English learn (thư mục riêng không liên quan dự án)
 English learn/
 

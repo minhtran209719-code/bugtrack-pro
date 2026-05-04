@@ -1,74 +1,89 @@
-// ===== BugTrack Pro - Main Application =====
+// ===== BugTrack Pro - Main Application (v2) =====
+// Đã refactor sang gọi REST /api/v1/* (xem CLAUDE.md - 8 architecture seams).
+// Cache đồng bộ: load full khi mở + delta poll mỗi 10s.
 
-// ===== SERVER SYNC =====
 const isServer = location.protocol !== 'file:';
-const API = location.origin + '/api';
+const API = location.origin + '/api/v1';
+const PUBLIC_BASE = location.origin;
 
-// Wrapper: đọc/ghi data qua server nếu có, fallback localStorage
+// In-memory cache (replicate từ server). Render functions đọc từ Cache (đồng bộ)
+// nên không cần đổi chữ ký. Mọi mutation cập nhật optimistic ngay vào Cache.
+const Cache = {
+    bugs: [],
+    improvements: [],
+    products: [],
+    devList: [],
+    reporterList: [],
+    bugTypes: [],
+    activeProduct: '',
+    lastSync: null,
+};
+
+async function apiCall(method, path, body, opts = {}) {
+    const headers = {};
+    let payload;
+    if (body instanceof Blob || body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
+        payload = body;
+        if (opts.filename) headers['X-Filename'] = encodeURIComponent(opts.filename);
+    } else if (body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        payload = JSON.stringify(body);
+    }
+    const res = await fetch(API + path, { method, headers, body: payload });
+    if (!res.ok) {
+        let err;
+        try { err = (await res.json()).error; } catch { err = `HTTP ${res.status}`; }
+        throw new Error(err);
+    }
+    return res.json();
+}
+
+// DataSync: load full + delta poll. Modal mở thì skip để không ghi đè input.
 const DataSync = {
-    _cache: null,
-    _dirty: false,
-    _syncTimers: {},
-
-    async load() {
-        if (isServer) {
-            try {
-                const res = await fetch(API + '/data', { cache: 'no-store' });
-                this._cache = await res.json();
-                // Mirror to localStorage for offline fallback
-                for (const [k, v] of Object.entries(this._cache)) {
-                    localStorage.setItem('bt_' + k, JSON.stringify(v));
-                }
-                return;
-            } catch (e) { console.warn('Server offline, using localStorage'); }
-        }
-        // Fallback: localStorage
-        this._cache = null;
+    async loadAll() {
+        const [meta, bugs, imps] = await Promise.all([
+            apiCall('GET', '/meta'),
+            apiCall('GET', '/bugs?size=10000'),
+            apiCall('GET', '/improvements?size=10000'),
+        ]);
+        Cache.products = meta.products || [];
+        Cache.devList = meta.devList || [];
+        Cache.reporterList = meta.reporterList || [];
+        Cache.bugTypes = meta.bugTypes || [];
+        Cache.activeProduct = meta.activeProduct || Cache.products[0] || '';
+        Cache.bugs = bugs.items || [];
+        Cache.improvements = imps.items || [];
+        Cache.lastSync = new Date().toISOString();
     },
 
-    syncToServer(key, data) {
-        if (!isServer) return;
-        // Debounce riêng cho từng key, tránh cancel lẫn nhau
-        clearTimeout(this._syncTimers[key]);
-        this._syncTimers[key] = setTimeout(async () => {
-            try {
-                const res = await fetch(API + '/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ [key]: data })
-                });
-                const json = await res.json();
-                // Cập nhật localStorage với data merged từ server (bao gồm bug của máy khác)
-                if (json.merged) {
-                    for (const [k, v] of Object.entries(json.merged)) {
-                        localStorage.setItem('bt_' + k, JSON.stringify(v));
-                    }
-                }
-            } catch (e) { console.warn('Sync failed:', e); }
-        }, 300);
+    async pollDelta() {
+        if (!Cache.lastSync) return false;
+        const since = encodeURIComponent(Cache.lastSync);
+        const [bugDelta, impDelta] = await Promise.all([
+            apiCall('GET', `/bugs/changed?since=${since}`),
+            apiCall('GET', `/improvements/changed?since=${since}`),
+        ]);
+        let changed = false;
+        for (const b of (bugDelta.items || [])) {
+            const i = Cache.bugs.findIndex(x => x.id === b.id);
+            if (i >= 0) Cache.bugs[i] = b; else Cache.bugs.unshift(b);
+            changed = true;
+        }
+        for (const im of (impDelta.items || [])) {
+            const i = Cache.improvements.findIndex(x => x.id === im.id);
+            if (i >= 0) Cache.improvements[i] = im; else Cache.improvements.unshift(im);
+            changed = true;
+        }
+        Cache.lastSync = bugDelta.now || new Date().toISOString();
+        return changed;
     },
 
     startAutoRefresh(interval = 10000) {
-        if (!isServer) return;
         const poll = async () => {
-            // Bỏ qua nếu đang mở modal (người dùng đang chỉnh sửa)
             const modalOpen = [...document.querySelectorAll('.modal')].some(m => !m.hidden);
             if (modalOpen) return;
             try {
-                const res = await fetch(API + '/data', { cache: 'no-store' });
-                if (!res.ok) return;
-                const fresh = await res.json();
-                const keys = ['bugs', 'improvements', 'products', 'devList', 'reporterList', 'bugTypes'];
-                let changed = false;
-                for (const k of keys) {
-                    if (fresh[k] === undefined) continue;
-                    const cur = localStorage.getItem('bt_' + k);
-                    const next = JSON.stringify(fresh[k]);
-                    if (cur !== next) {
-                        localStorage.setItem('bt_' + k, next);
-                        changed = true;
-                    }
-                }
+                const changed = await this.pollDelta();
                 if (changed) {
                     renderProductSelect();
                     renderDashboard();
@@ -86,93 +101,47 @@ const DataSync = {
             }
         };
         setInterval(poll, interval);
-    }
+    },
 };
 
-// ===== FILE STORAGE (IndexedDB - no size limit) =====
-const FileStore = {
-    DB_NAME: 'bt_files',
-    STORE: 'attachments',
-    _db: null,
+// FileStore IndexedDB legacy đã loại bỏ — server SQLite + uploads/ là nguồn duy nhất.
 
-    open() {
-        return new Promise((resolve, reject) => {
-            if (this._db) { resolve(this._db); return; }
-            const req = indexedDB.open(this.DB_NAME, 1);
-            req.onupgradeneeded = e => { e.target.result.createObjectStore(this.STORE); };
-            req.onsuccess = e => { this._db = e.target.result; resolve(this._db); };
-            req.onerror = e => reject(e);
-        });
-    },
+// Pending uploads: file đã upload tạm trong session modal, chưa commit vào bug nào.
+// Cancel modal → DELETE để tránh file mồ côi.
+let pendingUploads = [];
+function commitPendingUploads() { pendingUploads = []; }
+async function cleanupPendingUploads() {
+    if (pendingUploads.length === 0) return;
+    const urls = pendingUploads.slice();
+    pendingUploads = [];
+    try { await apiCall('DELETE', '/uploads', { urls }); }
+    catch (e) { console.warn('Pending cleanup failed:', e.message); }
+}
 
-    async save(id, dataUrl) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(this.STORE, 'readwrite');
-            tx.objectStore(this.STORE).put(dataUrl, id);
-            tx.oncomplete = () => resolve();
-            tx.onerror = e => reject(e);
-        });
-    },
-
-    async get(id) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(this.STORE, 'readonly');
-            const req = tx.objectStore(this.STORE).get(id);
-            req.onsuccess = () => resolve(req.result || null);
-            req.onerror = e => reject(e);
-        });
-    },
-
-    async delete(id) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(this.STORE, 'readwrite');
-            tx.objectStore(this.STORE).delete(id);
-            tx.oncomplete = () => resolve();
-            tx.onerror = e => reject(e);
-        });
-    },
-
-    async deleteMultiple(ids) {
-        const db = await this.open();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(this.STORE, 'readwrite');
-            const store = tx.objectStore(this.STORE);
-            ids.forEach(id => store.delete(id));
-            tx.oncomplete = () => resolve();
-            tx.onerror = e => reject(e);
-        });
-    },
-
-    generateId() {
-        return 'file_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    }
-};
-
-// ===== PRODUCT MANAGEMENT =====
+// ===== PRODUCT MANAGEMENT (API-backed, optimistic) =====
 const ProductDB = {
-    KEY: 'bt_products',
-    ACTIVE_KEY: 'bt_active_product',
-    get() {
-        const saved = JSON.parse(localStorage.getItem(this.KEY) || 'null');
-        if (saved && saved.length > 0) return saved;
-        return ['GemCloudPhone', 'GemLogin'];
+    get() { return Cache.products.length ? Cache.products : ['GemCloudPhone']; },
+    getActive() { return Cache.activeProduct || this.get()[0]; },
+    setActive(name) {
+        if (Cache.activeProduct === name) return;
+        Cache.activeProduct = name;
+        apiCall('PATCH', '/meta', { activeProduct: name }).catch(e => console.warn('setActive sync:', e.message));
     },
-    save(d) { localStorage.setItem(this.KEY, JSON.stringify(d)); },
     add(name) {
-        const list = this.get();
-        if (!list.includes(name)) { list.push(name); this.save(list); }
+        if (!name || Cache.products.includes(name)) return;
+        Cache.products = [...Cache.products, name];
+        apiCall('PATCH', '/meta', { products: Cache.products }).catch(e => console.warn('add product sync:', e.message));
     },
-    remove(name) {
-        this.save(this.get().filter(n => n !== name));
-        // Remove all bugs of this product
-        const allBugs = JSON.parse(localStorage.getItem('bt_bugs') || '[]');
-        localStorage.setItem('bt_bugs', JSON.stringify(allBugs.filter(b => b.product !== name)));
+    async remove(name) {
+        Cache.products = Cache.products.filter(p => p !== name);
+        // Xoá bug của sản phẩm này (lần lượt để server tự dọn attachments).
+        const productBugs = Cache.bugs.filter(b => b.product === name);
+        for (const b of productBugs) {
+            try { await apiCall('DELETE', `/bugs/${b.id}`); } catch {}
+        }
+        Cache.bugs = Cache.bugs.filter(b => b.product !== name);
+        await apiCall('PATCH', '/meta', { products: Cache.products }).catch(e => console.warn('remove product sync:', e.message));
     },
-    getActive() { return localStorage.getItem(this.ACTIVE_KEY) || this.get()[0] || 'GemCloudPhone'; },
-    setActive(name) { localStorage.setItem(this.ACTIVE_KEY, name); }
 };
 
 function renderProductSelect() {
@@ -231,113 +200,105 @@ document.getElementById('btn-del-product').addEventListener('click', () => {
     toast('Đã xóa!', 'success');
 });
 
-// ===== DATA LAYER =====
+// ===== DATA LAYER (API-backed, optimistic Cache update) =====
+// API trả về displayId 'BUG-0042' (mỗi workspace) — render dùng displayId làm UI label,
+// còn `id` là ULID nội bộ, dùng để tham chiếu bug giữa các API call.
 const BugDB = {
-    KEY: 'bt_bugs',
-    getAll() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
-    get() { const p = ProductDB.getActive(); return this.getAll().filter(b => b.product === p); },
-    save(d) {
-        if (d.length === 0 && this.getAll().length > 0) {
-            console.warn('BugDB.save: blocked saving empty array');
-            return;
-        }
-        localStorage.setItem(this.KEY, JSON.stringify(d));
-        DataSync.syncToServer('bugs', d);
-    },
-    nextId() {
-        const bugs = this.getAll();
-        const max = bugs.reduce((m, b) => Math.max(m, parseInt(b.id.replace('BUG-', '')) || 0), 0);
-        return 'BUG-' + String(max + 1).padStart(4, '0');
-    },
-    add(bug) {
-        const bugs = this.getAll();
-        bug.id = this.nextId();
-        bug.product = ProductDB.getActive();
-        bug.createdAt = new Date().toISOString();
-        bug.updatedAt = bug.createdAt;
-        bug.history = [{ time: bug.createdAt, action: 'Tạo mới', detail: `Tạo lỗi "${bug.name}"` }];
-        bugs.push(bug);
-        this.save(bugs);
-        return bug;
-    },
-    update(id, data) {
-        const bugs = this.getAll();
-        const i = bugs.findIndex(b => b.id === id);
-        if (i === -1) return;
-        const old = bugs[i];
-        // Ghi lịch sử thay đổi
-        if (!old.history) old.history = [];
-        const changes = [];
-        const fieldLabels = {
-            name: 'Tên lỗi', description: 'Mô tả', type: 'Loại lỗi', severity: 'Mức độ',
-            status: 'Trạng thái', assignee: 'Người xử lý', reporter: 'Người TT', testStatus: 'TT Test',
-            module: 'Thiết bị', devNote: 'Ghi chú XL', supportNote: 'Ghi chú TT', foundDate: 'Ngày phát hiện'
+    getAll() { return Cache.bugs; },
+    get() { const p = ProductDB.getActive(); return Cache.bugs.filter(b => b.product === p); },
+    find(id) { return Cache.bugs.find(b => b.id === id); },
+
+    add(input) {
+        const tempId = 'tmp-' + Date.now();
+        const optimistic = {
+            id: tempId,
+            displayId: '...',
+            product: ProductDB.getActive(),
+            ...input,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            history: [{ time: new Date().toISOString(), action: 'Tạo mới', detail: `Tạo lỗi "${input.name}"` }],
         };
-        for (const key of Object.keys(data)) {
-            if (fieldLabels[key] && data[key] !== old[key]) {
-                changes.push(`${fieldLabels[key]}: "${old[key] || '(trống)'}" → "${data[key] || '(trống)'}"`);
-            }
-        }
-        if (changes.length > 0) {
-            old.history.push({
-                time: new Date().toISOString(),
-                action: 'Cập nhật',
-                detail: changes.join(' | ')
+        Cache.bugs.unshift(optimistic);
+
+        apiCall('POST', '/bugs', { ...input, product: ProductDB.getActive() })
+            .then(bug => {
+                const i = Cache.bugs.findIndex(b => b.id === tempId);
+                if (i >= 0) Cache.bugs[i] = bug;
+                renderBugTable(); renderDashboard(); refreshDeviceSummaryIfActive();
+            })
+            .catch(e => {
+                Cache.bugs = Cache.bugs.filter(b => b.id !== tempId);
+                toast('Tạo lỗi thất bại: ' + e.message, 'error');
+                renderBugTable();
             });
-        }
-        Object.assign(old, data, { updatedAt: new Date().toISOString() });
-        this.save(bugs);
+        return optimistic;
     },
+
+    update(id, patch) {
+        const i = Cache.bugs.findIndex(b => b.id === id);
+        if (i < 0) return;
+        const old = Cache.bugs[i];
+        const merged = { ...old, ...patch, updatedAt: new Date().toISOString() };
+        if (patch.status === 'Đã xử lí' && old.status !== 'Đã xử lí' && !merged.completedDate) {
+            merged.completedDate = merged.updatedAt;
+        }
+        Cache.bugs[i] = merged;
+
+        apiCall('PATCH', `/bugs/${id}`, patch)
+            .then(bug => {
+                const j = Cache.bugs.findIndex(b => b.id === id);
+                if (j >= 0) Cache.bugs[j] = bug;
+            })
+            .catch(e => toast('Đồng bộ thất bại: ' + e.message, 'error'));
+    },
+
     delete(id) {
-        const filtered = this.getAll().filter(b => b.id !== id);
-        localStorage.setItem(this.KEY, JSON.stringify(filtered));
-        // Gọi API delete riêng, không gửi toàn bộ mảng để tránh ghi đè data máy khác
-        if (isServer) {
-            fetch(API + '/delete-item', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'bug', id })
-            }).catch(e => console.warn('Delete sync failed:', e));
-        }
+        Cache.bugs = Cache.bugs.filter(b => b.id !== id);
+        // Server tự xoá kèm attachments
+        apiCall('DELETE', `/bugs/${id}`).catch(e => toast('Xoá thất bại: ' + e.message, 'error'));
     },
-    find(id) { return this.getAll().find(b => b.id === id); }
 };
 
 const ImpDB = {
-    KEY: 'bt_improvements',
-    get() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
-    save(d) { localStorage.setItem(this.KEY, JSON.stringify(d)); DataSync.syncToServer('improvements', d); },
-    nextId() {
-        const imps = this.get();
-        const max = imps.reduce((m, b) => Math.max(m, parseInt(b.id.replace('IMP-', '')) || 0), 0);
-        return 'IMP-' + String(max + 1).padStart(4, '0');
+    get() { return Cache.improvements; },
+    find(id) { return Cache.improvements.find(x => x.id === id); },
+
+    add(input) {
+        const tempId = 'tmp-' + Date.now();
+        const optimistic = { id: tempId, displayId: '...', ...input, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        Cache.improvements.unshift(optimistic);
+
+        apiCall('POST', '/improvements', input)
+            .then(imp => {
+                const i = Cache.improvements.findIndex(x => x.id === tempId);
+                if (i >= 0) Cache.improvements[i] = imp;
+                renderImprovements();
+            })
+            .catch(e => {
+                Cache.improvements = Cache.improvements.filter(x => x.id !== tempId);
+                toast('Tạo cải tiến thất bại: ' + e.message, 'error');
+                renderImprovements();
+            });
+        return optimistic;
     },
-    add(imp) {
-        const imps = this.get();
-        imp.id = this.nextId();
-        imp.createdAt = new Date().toISOString();
-        imps.push(imp);
-        this.save(imps);
-        return imp;
+
+    update(id, patch) {
+        const i = Cache.improvements.findIndex(x => x.id === id);
+        if (i < 0) return;
+        Cache.improvements[i] = { ...Cache.improvements[i], ...patch, updatedAt: new Date().toISOString() };
+        apiCall('PATCH', `/improvements/${id}`, patch)
+            .then(imp => {
+                const j = Cache.improvements.findIndex(x => x.id === id);
+                if (j >= 0) Cache.improvements[j] = imp;
+            })
+            .catch(e => toast('Đồng bộ thất bại: ' + e.message, 'error'));
     },
-    update(id, data) {
-        const imps = this.get();
-        const i = imps.findIndex(b => b.id === id);
-        if (i === -1) return;
-        Object.assign(imps[i], data);
-        this.save(imps);
-    },
+
     delete(id) {
-        const filtered = this.get().filter(b => b.id !== id);
-        localStorage.setItem(this.KEY, JSON.stringify(filtered));
-        if (isServer) {
-            fetch(API + '/delete-item', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'improvement', id })
-            }).catch(e => console.warn('Delete sync failed:', e));
-        }
-    }
+        Cache.improvements = Cache.improvements.filter(x => x.id !== id);
+        apiCall('DELETE', `/improvements/${id}`).catch(e => toast('Xoá thất bại: ' + e.message, 'error'));
+    },
 };
 
 // ===== UTILS =====
@@ -651,6 +612,10 @@ function showDashDetail(filter) {
 }
 
 // ===== BUG TABLE =====
+// Pagination state cho bug table (client-side, hỗ trợ scale 10k+).
+let bugTablePage = 1;
+const BUG_TABLE_PAGE_SIZE = 200;
+
 function renderBugTable() {
     populateModuleFilter();
     populateTypeFilter();
@@ -661,7 +626,7 @@ function renderBugTable() {
     const fType = document.getElementById('filter-type').value;
     const fModule = document.getElementById('filter-module').value;
 
-    if (search) bugs = bugs.filter(b => b.name.toLowerCase().includes(search) || b.id.toLowerCase().includes(search) || (b.description || '').toLowerCase().includes(search));
+    if (search) bugs = bugs.filter(b => b.name.toLowerCase().includes(search) || b.id.toLowerCase().includes(search) || (b.displayId || '').toLowerCase().includes(search) || (b.description || '').toLowerCase().includes(search));
     if (fStatus !== 'all') bugs = bugs.filter(b => b.status === fStatus);
     if (fSev !== 'all') bugs = bugs.filter(b => b.severity === fSev);
     if (fType !== 'all') bugs = bugs.filter(b => b.type === fType);
@@ -671,21 +636,27 @@ function renderBugTable() {
 
     const tbody = document.getElementById('bug-tbody');
     const empty = document.getElementById('bug-empty');
+    const paginator = document.getElementById('bug-paginator');
 
     if (bugs.length === 0) {
         tbody.innerHTML = '';
         empty.hidden = false;
+        if (paginator) paginator.innerHTML = '';
         return;
     }
     empty.hidden = true;
 
-    // Build module list from existing bugs + defaults
-    const moduleOptions = [...new Set(bugs.map(b => b.module).filter(Boolean).concat(['All', 'Note 8', 'S7', 'Z Flip 3']))].sort();
+    // Pagination slice
+    const totalPages = Math.max(1, Math.ceil(bugs.length / BUG_TABLE_PAGE_SIZE));
+    if (bugTablePage > totalPages) bugTablePage = totalPages;
+    const startIdx = (bugTablePage - 1) * BUG_TABLE_PAGE_SIZE;
+    const pageItems = bugs.slice(startIdx, startIdx + BUG_TABLE_PAGE_SIZE);
 
-    tbody.innerHTML = bugs.map((b, idx) => {
+    tbody.innerHTML = pageItems.map((b, idx) => {
+        const sttIdx = startIdx + idx;
         const foundTime = b.foundDate ? fmtDateTime(b.foundDate) : fmtDate(b.createdAt);
         return `<tr class="${rowClass(b)}">
-            <td class="bug-stt">${idx + 1}</td>
+            <td class="bug-stt" title="${esc(b.displayId || b.id)}">${sttIdx + 1}</td>
             <td class="bug-name-cell" onclick="showDetail('${b.id}')"><div class="bug-name-text"><span class="sev-dot sev-dot-${b.severity === 'Nghiêm trọng' ? 'critical' : 'low'}" title="${esc(b.severity)}"></span>${esc(b.name)}</div><div class="bug-name-tooltip">${esc(b.severity)} · ${esc(b.name)}</div></td>
             <td class="bug-desc-cell"><div class="inline-editable" contenteditable="true" data-id="${b.id}" data-field="description" data-placeholder="Nhập mô tả...">${esc(b.description || '')}</div></td>
             <td>${foundTime}</td>
@@ -731,6 +702,40 @@ function renderBugTable() {
             </td>
         </tr>`;
     }).join('');
+
+    // Render pagination bar
+    if (paginator) {
+        if (totalPages <= 1) {
+            paginator.innerHTML = `<span class="pg-info">Tổng ${bugs.length} lỗi</span>`;
+        } else {
+            const showFrom = startIdx + 1;
+            const showTo = Math.min(startIdx + BUG_TABLE_PAGE_SIZE, bugs.length);
+            const pages = [];
+            const cur = bugTablePage;
+            // Build compact pager: first, current ±2, last
+            const pageBtn = (n, label, disabled = false, active = false) =>
+                `<button class="pg-btn${active ? ' active' : ''}${disabled ? ' disabled' : ''}" ${disabled ? 'disabled' : ''} data-page="${n}">${label}</button>`;
+            pages.push(pageBtn(Math.max(1, cur - 1), '‹ Trước', cur === 1));
+            const seen = new Set();
+            const candidates = [1, 2, cur - 1, cur, cur + 1, totalPages - 1, totalPages];
+            const nums = [...new Set(candidates.filter(n => n >= 1 && n <= totalPages))].sort((a, b) => a - b);
+            let prev = 0;
+            for (const n of nums) {
+                if (n - prev > 1) pages.push(`<span class="pg-ellipsis">…</span>`);
+                pages.push(pageBtn(n, String(n), false, n === cur));
+                prev = n;
+            }
+            pages.push(pageBtn(Math.min(totalPages, cur + 1), 'Sau ›', cur === totalPages));
+            paginator.innerHTML = `<span class="pg-info">Hiển thị ${showFrom}-${showTo} / ${bugs.length} lỗi</span>${pages.join('')}`;
+            paginator.querySelectorAll('.pg-btn:not(.disabled)').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    bugTablePage = parseInt(btn.dataset.page, 10);
+                    renderBugTable();
+                    document.querySelector('.bug-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        }
+    }
 
     // Bind action menu toggle
     tbody.querySelectorAll('.action-toggle').forEach(btn => {
@@ -938,11 +943,13 @@ function _bindSimpleSelect(menu, bugId, field, btn) {
     });
 }
 
-document.getElementById('bug-search').addEventListener('input', renderBugTable);
-document.getElementById('filter-status').addEventListener('change', renderBugTable);
-document.getElementById('filter-severity').addEventListener('change', renderBugTable);
-document.getElementById('filter-type').addEventListener('change', renderBugTable);
-document.getElementById('filter-module').addEventListener('change', renderBugTable);
+// Khi đổi filter/search → reset về trang 1.
+const _resetPageAndRender = () => { bugTablePage = 1; renderBugTable(); };
+document.getElementById('bug-search').addEventListener('input', _resetPageAndRender);
+document.getElementById('filter-status').addEventListener('change', _resetPageAndRender);
+document.getElementById('filter-severity').addEventListener('change', _resetPageAndRender);
+document.getElementById('filter-type').addEventListener('change', _resetPageAndRender);
+document.getElementById('filter-module').addEventListener('change', _resetPageAndRender);
 
 // Custom device input toggle
 document.getElementById('bug-reporter-select').addEventListener('change', function() {
@@ -991,6 +998,9 @@ document.getElementById('btn-bug-cancel').addEventListener('click', closeBugModa
 document.getElementById('bug-modal-close').addEventListener('click', closeBugModal);
 
 function openBugModal(bug = null) {
+    // Mỗi session modal: reset tracking pending uploads.
+    // Attachments có sẵn (khi edit) đã được tham chiếu vào bug → không vào pendingUploads.
+    pendingUploads = [];
     document.getElementById('bug-modal-title').textContent = bug ? 'Chỉnh sửa lỗi' : 'Tạo lỗi mới';
     document.getElementById('bug-edit-id').value = bug ? bug.id : '';
     document.getElementById('bug-name').value = bug ? bug.name : '';
@@ -1044,49 +1054,43 @@ function openBugModal(bug = null) {
     document.getElementById('bug-modal').hidden = false;
 }
 
-function closeBugModal() { document.getElementById('bug-modal').hidden = true; }
+function closeBugModal() {
+    document.getElementById('bug-modal').hidden = true;
+    // Cleanup các file đã upload trong session này nhưng user huỷ → tránh file mồ côi.
+    cleanupPendingUploads();
+}
 
-async function renderAttachments() {
+function renderAttachments() {
     const container = document.getElementById('bug-attachments');
     container.innerHTML = '';
     for (let i = 0; i < bugAttachments.length; i++) {
         const ref = bugAttachments[i];
-        // ref: server URL (/uploads/xxx.jpg) or legacy data:url or legacy fileId
-        let src = ref;
-        if (ref.startsWith('data:')) {
-            src = ref;
-        } else if (ref.startsWith('/uploads/')) {
-            src = ref;
-        } else {
-            // Legacy IndexedDB fileId - try to load
-            const data = await FileStore.get(ref);
-            if (!data) continue;
-            src = data;
-        }
-        const isVideo = src.startsWith('data:video') || /\.(mp4|webm)$/i.test(src);
+        if (!ref) continue;
+        const isVideo = ref.startsWith('data:video') || /\.(mp4|webm)$/i.test(ref);
         const div = document.createElement('div');
         div.className = 'att-item';
         div.innerHTML = `${isVideo
-            ? `<video src="${src}" class="att-thumb" muted></video><span class="att-play">▶</span>`
-            : `<img src="${src}" class="att-thumb">`}
+            ? `<video src="${ref}" class="att-thumb" muted preload="none"></video><span class="att-play">▶</span>`
+            : `<img src="${ref}" class="att-thumb" loading="lazy">`}
             <button class="att-remove" data-idx="${i}" title="Xóa">✕</button>`;
         div.querySelector('.att-remove').addEventListener('click', () => removeAttachment(i));
         container.appendChild(div);
     }
 }
 
-async function removeAttachment(idx) {
+function removeAttachment(idx) {
     const ref = bugAttachments[idx];
-    if (ref && ref.startsWith('/uploads/') && isServer) {
-        fetch(API + '/delete-file', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: ref })
-        }).catch(() => {});
-    } else if (ref && !ref.startsWith('data:') && !ref.startsWith('/')) {
-        await FileStore.delete(ref);
-    }
     bugAttachments.splice(idx, 1);
+    // Nếu file này nằm trong pendingUploads (chưa save bug) → DELETE ngay để xoá file server.
+    // Nếu file đã thuộc bug đang edit → KHÔNG xoá ngay vì bug DB vẫn ref;
+    //   khi user nhấn Save, server sẽ diff attachments cũ/mới và xoá file đã lìa.
+    const idxPending = pendingUploads.indexOf(ref);
+    if (idxPending >= 0) {
+        pendingUploads.splice(idxPending, 1);
+        if (ref && ref.startsWith('/uploads/')) {
+            apiCall('DELETE', '/uploads', { url: ref }).catch(() => {});
+        }
+    }
     renderAttachments();
 }
 
@@ -1133,76 +1137,68 @@ function compressImage(file, maxW, quality) {
     });
 }
 
-async function uploadToServer(blob, filename) {
-    const res = await fetch(API + '/upload', {
-        method: 'POST',
-        headers: { 'X-Filename': encodeURIComponent(filename) },
-        body: blob
+// Upload tới server với progress (XHR), trả URL final.
+function uploadToServer(blob, filename, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', API + '/uploads');
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(filename));
+        xhr.upload.onprogress = e => {
+            if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+        };
+        xhr.onload = () => {
+            try {
+                const json = JSON.parse(xhr.responseText);
+                if (xhr.status >= 200 && xhr.status < 300 && json.url) {
+                    pendingUploads.push(json.url);
+                    resolve(json.url);
+                } else {
+                    reject(new Error(json.error || `HTTP ${xhr.status}`));
+                }
+            } catch (e) { reject(e); }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(blob);
     });
-    const json = await res.json();
-    if (json.url) return json.url;
-    throw new Error(json.error || 'Upload failed');
 }
 
+// Khớp với MAX_UPLOAD trong src/server.js (100MB do giới hạn Cloudflare free tier).
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 async function handleFiles(files) {
+    // Validate trước
+    const ok = [];
     for (const f of Array.from(files)) {
         if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) {
-            toast('Chỉ hỗ trợ ảnh hoặc video!', 'error');
+            toast(`"${f.name}" không phải ảnh/video, bỏ qua`, 'error');
             continue;
         }
-
-        if (f.type.startsWith('video/')) {
-            if (f.size > 20 * 1024 * 1024) {
-                toast('Video tối đa 20MB!', 'error');
-                continue;
-            }
-            const ok = await new Promise(resolve => {
-                const url = URL.createObjectURL(f);
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = () => {
-                    URL.revokeObjectURL(url);
-                    if (video.duration > 15) {
-                        toast('Video tối đa 15 giây! (' + Math.round(video.duration) + 's)', 'error');
-                        resolve(false);
-                    } else { resolve(true); }
-                };
-                video.src = url;
-            });
-            if (!ok) continue;
-
-            if (isServer) {
-                try {
-                    const url = await uploadToServer(f, f.name || 'video.mp4');
-                    bugAttachments.push(url);
-                } catch (e) { toast('Upload video lỗi!', 'error'); continue; }
-            } else {
-                const dataUrl = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.readAsDataURL(f);
-                });
-                const fileId = FileStore.generateId();
-                await FileStore.save(fileId, dataUrl);
-                bugAttachments.push(fileId);
-            }
-        } else {
-            // Compress image
-            const compressed = await compressImage(f, 800, 0.6);
-            if (isServer) {
-                try {
-                    const blob = await (await fetch(compressed)).blob();
-                    const url = await uploadToServer(blob, f.name || 'image.jpg');
-                    bugAttachments.push(url);
-                } catch (e) { toast('Upload ảnh lỗi!', 'error'); continue; }
-            } else {
-                const fileId = FileStore.generateId();
-                await FileStore.save(fileId, compressed);
-                bugAttachments.push(fileId);
-            }
+        if (f.size > MAX_UPLOAD_BYTES) {
+            toast(`"${f.name}" vượt giới hạn ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)}MB`, 'error');
+            continue;
         }
-        renderAttachments();
+        ok.push(f);
     }
+    if (ok.length === 0) return;
+
+    // Upload song song
+    await Promise.all(ok.map(async f => {
+        try {
+            let blob = f;
+            let name = f.name || (f.type.startsWith('video/') ? 'video.mp4' : 'image.jpg');
+            if (f.type.startsWith('image/')) {
+                // Compress ảnh để tiết kiệm băng thông + storage
+                const dataUrl = await compressImage(f, 1920, 0.85);
+                blob = await (await fetch(dataUrl)).blob();
+                name = f.name ? f.name.replace(/\.\w+$/, '.jpg') : 'image.jpg';
+            }
+            const url = await uploadToServer(blob, name);
+            bugAttachments.push(url);
+            renderAttachments();
+        } catch (e) {
+            toast(`Upload "${f.name}" thất bại: ${e.message}`, 'error');
+        }
+    }));
 }
 
 // Save
@@ -1251,6 +1247,9 @@ document.getElementById('btn-bug-save').addEventListener('click', () => {
         toast('Đã tạo lỗi mới!', 'success');
     }
 
+    // Bug đã save thành công → các file trong pendingUploads đã được tham chiếu vào bug,
+    // không phải mồ côi → commit (xoá khỏi tracking) trước khi closeBugModal cleanup.
+    commitPendingUploads();
     closeBugModal();
     renderBugTable();
     renderDashboard();
@@ -1272,20 +1271,7 @@ function editBug(id) {
 
 async function deleteBug(id) {
     if (!confirm('Xóa lỗi này?')) return;
-    const bug = BugDB.find(id);
-    if (bug && bug.attachments) {
-        for (const a of bug.attachments) {
-            if (a.startsWith('/uploads/') && isServer) {
-                fetch(API + '/delete-file', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: a })
-                }).catch(() => {});
-            } else if (!a.startsWith('data:') && !a.startsWith('/')) {
-                await FileStore.delete(a);
-            }
-        }
-    }
+    // Server tự xoá kèm attachments khi DELETE bug.
     BugDB.delete(id);
     toast('Đã xóa!', 'success');
     renderBugTable();
@@ -1297,25 +1283,16 @@ async function deleteBug(id) {
 async function showDetail(id) {
     const b = BugDB.find(id);
     if (!b) return;
-    document.getElementById('detail-title').textContent = b.id + ' - ' + b.name;
+    document.getElementById('detail-title').textContent = (b.displayId || b.id) + ' - ' + b.name;
 
     let attachHtml = '';
     if (b.attachments && b.attachments.length > 0) {
-        const resolved = [];
-        for (const ref of b.attachments) {
-            if (ref.startsWith('/uploads/')) {
-                resolved.push(ref);
-            } else if (ref.startsWith('data:')) {
-                resolved.push(ref);
-            } else {
-                const data = await FileStore.get(ref);
-                if (data) resolved.push(data);
-            }
-        }
+        // Mọi attachment giờ đều là URL '/uploads/...' (server-side storage).
+        // Vẫn fallback cho 'data:...' legacy phòng case data cũ chưa migrate.
+        const resolved = b.attachments.filter(r => r && (r.startsWith('/uploads/') || r.startsWith('data:')));
         if (resolved.length > 0) {
-            attachHtml = `<div class="detail-field"><div class="detail-label">Ảnh/Video đính kèm (click để phóng to)</div><div class="attachments" style="margin-top:6px" id="detail-att-container"></div></div>`;
+            attachHtml = `<div class="detail-field"><div class="detail-label">Ảnh/Video đính kèm (click để phóng to, click "Copy link" để chia sẻ)</div><div class="attachments" style="margin-top:6px" id="detail-att-container"></div></div>`;
         }
-        // Store for lightbox
         window._detailAttachments = resolved;
     }
 
@@ -1373,20 +1350,45 @@ async function showDetail(id) {
         </details>
     `;
 
-    // Render attachments
+    // Render attachments + nút Copy link để share ngoài app.
     if (window._detailAttachments && window._detailAttachments.length > 0) {
         const container = document.getElementById('detail-att-container');
         if (container) {
             window._detailAttachments.forEach((data, i) => {
                 const isVideo = data.startsWith('data:video') || /\.(mp4|webm)$/i.test(data);
+                const wrap = document.createElement('div');
+                wrap.className = 'att-wrap';
                 const div = document.createElement('div');
                 div.className = 'att-item';
                 div.style.cssText = 'width:120px;height:90px;cursor:pointer';
                 div.innerHTML = isVideo
-                    ? `<video src="${data}" class="att-thumb" style="width:120px;height:90px" muted></video><span class="att-play">▶</span>`
-                    : `<img src="${data}" class="att-thumb" style="width:120px;height:90px">`;
+                    ? `<video src="${data}" class="att-thumb" style="width:120px;height:90px" muted preload="none"></video><span class="att-play">▶</span>`
+                    : `<img src="${data}" class="att-thumb" style="width:120px;height:90px" loading="lazy">`;
                 div.addEventListener('click', () => openLightbox(window._detailAttachments, i));
-                container.appendChild(div);
+                wrap.appendChild(div);
+
+                if (data.startsWith('/uploads/')) {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'att-copy';
+                    copyBtn.textContent = '🔗 Copy link';
+                    copyBtn.title = 'Sao chép link để chia sẻ ngoài app';
+                    copyBtn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const absolute = PUBLIC_BASE + data;
+                        navigator.clipboard.writeText(absolute).then(
+                            () => toast('Đã sao chép link!', 'success'),
+                            () => {
+                                // Fallback cho trình duyệt không cho phép clipboard API
+                                const ta = document.createElement('textarea');
+                                ta.value = absolute; document.body.appendChild(ta);
+                                ta.select(); document.execCommand('copy'); ta.remove();
+                                toast('Đã sao chép link!', 'success');
+                            }
+                        );
+                    });
+                    wrap.appendChild(copyBtn);
+                }
+                container.appendChild(wrap);
             });
         }
     }
@@ -1603,7 +1605,7 @@ function renderAlerts() {
         return `<div class="alert-item ${isCritical ? '' : 'warn'}">
             <div class="alert-icon">${isCritical ? '🔴' : '🟡'}</div>
             <div class="alert-info">
-                <div class="alert-title">${a.bug.id} - ${esc(a.bug.name)}</div>
+                <div class="alert-title">${a.bug.displayId || a.bug.id} - ${esc(a.bug.name)}</div>
                 <div class="alert-desc">${severityBadge(a.bug.severity)} · ${statusBadge(a.bug.status)} · Dev: ${esc(a.bug.assignee || 'Chưa phân công')}</div>
             </div>
             <div class="alert-time">Quá ${a.hours}h</div>
@@ -1639,21 +1641,23 @@ document.getElementById('btn-export').addEventListener('click', () => {
 });
 
 document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
-document.getElementById('import-file').addEventListener('change', e => {
+document.getElementById('import-file').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-        try {
-            const data = JSON.parse(ev.target.result);
-            if (data.bugs) BugDB.save(data.bugs);
-            if (data.improvements) ImpDB.save(data.improvements);
-            toast('Đã nhập dữ liệu!', 'success');
-            renderDashboard();
-            refreshDeviceSummaryIfActive();
-        } catch { toast('File không hợp lệ!', 'error'); }
-    };
-    reader.readAsText(file);
+    if (!confirm('Nhập dữ liệu sẽ TẠO MỚI từng bug/improvement vào server (không ghi đè bug hiện có). Tiếp tục?')) return;
+    try {
+        const data = JSON.parse(await file.text());
+        let nb = 0, ni = 0;
+        for (const b of (data.bugs || [])) {
+            try { await apiCall('POST', '/bugs', b); nb++; } catch (err) { console.warn('import bug fail', err.message); }
+        }
+        for (const i of (data.improvements || [])) {
+            try { await apiCall('POST', '/improvements', i); ni++; } catch (err) { console.warn('import imp fail', err.message); }
+        }
+        await DataSync.loadAll();
+        toast(`Đã nhập ${nb} bug + ${ni} cải tiến`, 'success');
+        renderProductSelect(); renderDashboard(); renderBugTable(); renderImprovements();
+    } catch { toast('File không hợp lệ!', 'error'); }
 });
 
 // ===== LIGHTBOX =====
@@ -1802,21 +1806,19 @@ document.addEventListener('keydown', e => {
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
 });
 
-// ===== DEV LIST =====
-const DEV_DEFAULTS = ['Quang', 'Tùng', 'Hoàng'];
+// ===== DEV LIST (API-backed) =====
 const DevListDB = {
-    KEY: 'bt_dev_list',
-    get() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
-    save(d) { localStorage.setItem(this.KEY, JSON.stringify([...new Set(d)].filter(Boolean).sort())); },
+    get() { return Cache.devList || []; },
     add(name) {
-        if (!name) return;
-        const list = this.get();
-        if (!list.includes(name)) { list.push(name); this.save(list); }
+        if (!name || Cache.devList.includes(name)) return;
+        Cache.devList = [...Cache.devList, name].sort();
+        apiCall('PATCH', '/meta', { devList: Cache.devList }).catch(e => console.warn('devList sync:', e.message));
     },
-    remove(name) { this.save(this.get().filter(n => n !== name)); },
-    getAll() {
-        return [...new Set([...DEV_DEFAULTS, ...this.get()])].sort();
-    }
+    remove(name) {
+        Cache.devList = Cache.devList.filter(n => n !== name);
+        apiCall('PATCH', '/meta', { devList: Cache.devList }).catch(e => console.warn('devList sync:', e.message));
+    },
+    getAll() { return [...Cache.devList].sort(); },
 };
 
 function renderDevDatalist() {
@@ -1829,40 +1831,36 @@ function renderDevDatalist() {
     dl.innerHTML = DevListDB.getAll().map(d => `<option value="${esc(d)}">`).join('');
 }
 
-// ===== REPORTER LIST =====
-const REPORTER_DEFAULTS = ['Tiến', 'Thùy', 'Thắng'];
+// ===== REPORTER LIST (API-backed) =====
 const ReporterDB = {
-    KEY: 'bt_reporter_list',
-    get() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
-    save(d) { localStorage.setItem(this.KEY, JSON.stringify([...new Set(d)].filter(Boolean).sort())); },
+    get() { return Cache.reporterList || []; },
     add(name) {
-        if (!name) return;
-        const list = this.get();
-        if (!list.includes(name)) { list.push(name); this.save(list); }
-    },
-    remove(name) { this.save(this.get().filter(n => n !== name)); },
-    getAll() { return [...new Set([...REPORTER_DEFAULTS, ...this.get()])].sort(); }
-};
-
-// ===== BUG TYPE LIST =====
-const BugTypeDB = {
-    KEY: 'bt_bug_types',
-    ICONS: { 'Giao diện': '🎨', 'Logic': '⚙️', 'Hiệu năng': '⚡', 'Sập ứng dụng': '💥', 'Khác': '📎' },
-    get() {
-        const saved = JSON.parse(localStorage.getItem(this.KEY) || 'null');
-        if (saved) return saved;
-        return ['Giao diện', 'Logic', 'Hiệu năng', 'Sập ứng dụng', 'Khác'];
-    },
-    save(d) { localStorage.setItem(this.KEY, JSON.stringify(d)); },
-    add(name) {
-        const list = this.get();
-        if (!list.includes(name)) { list.push(name); this.save(list); }
+        if (!name || Cache.reporterList.includes(name)) return;
+        Cache.reporterList = [...Cache.reporterList, name].sort();
+        apiCall('PATCH', '/meta', { reporterList: Cache.reporterList }).catch(e => console.warn('reporterList sync:', e.message));
     },
     remove(name) {
-        this.save(this.get().filter(n => n !== name));
+        Cache.reporterList = Cache.reporterList.filter(n => n !== name);
+        apiCall('PATCH', '/meta', { reporterList: Cache.reporterList }).catch(e => console.warn('reporterList sync:', e.message));
+    },
+    getAll() { return [...Cache.reporterList].sort(); },
+};
+
+// ===== BUG TYPE LIST (API-backed) =====
+const BugTypeDB = {
+    ICONS: { 'Giao diện': '🎨', 'Logic': '⚙️', 'Hiệu năng': '⚡', 'Sập ứng dụng': '💥', 'Khác': '📎' },
+    get() { return Cache.bugTypes && Cache.bugTypes.length ? Cache.bugTypes : ['Giao diện', 'Logic', 'Hiệu năng', 'Sập ứng dụng', 'Khác']; },
+    add(name) {
+        if (!name || Cache.bugTypes.includes(name)) return;
+        Cache.bugTypes = [...Cache.bugTypes, name];
+        apiCall('PATCH', '/meta', { bugTypes: Cache.bugTypes }).catch(e => console.warn('bugTypes sync:', e.message));
+    },
+    remove(name) {
+        Cache.bugTypes = Cache.bugTypes.filter(n => n !== name);
+        apiCall('PATCH', '/meta', { bugTypes: Cache.bugTypes }).catch(e => console.warn('bugTypes sync:', e.message));
     },
     getIcon(name) { return this.ICONS[name] || '🏷️'; },
-    setIcon(name, icon) { this.ICONS[name] = icon; }
+    setIcon(name, icon) { this.ICONS[name] = icon; },
 };
 
 function renderBugTypeDropdown(selectedValue) {
@@ -2072,95 +2070,32 @@ function renderDeviceSummary() {
     }).join('') || '';
 }
 
-// ===== INIT & MIGRATE =====
+// ===== INIT =====
+// Server đã xử lý migration enum (status/severity/type) trong DAL khi import data.json.
+// FE chỉ cần load Cache và render.
 (async function init() {
-    // 0. Load data từ server trước (nếu có)
-    await DataSync.load();
+    try {
+        await DataSync.loadAll();
+    } catch (e) {
+        toast('Không kết nối được server: ' + e.message, 'error');
+        console.error('Initial load failed:', e);
+        return;
+    }
 
-    // 1. Dev mặc định
-    ['Quang', 'Tùng', 'Hoàng'].forEach(d => DevListDB.add(d));
-    ['Tiến', 'Thùy', 'Thắng'].forEach(d => ReporterDB.add(d));
-    ['Dev A', 'A'].forEach(d => DevListDB.remove(d));
+    // Đảm bảo activeProduct hợp lệ
+    if (!Cache.products.includes(Cache.activeProduct)) {
+        ProductDB.setActive(Cache.products[0] || 'GemCloudPhone');
+    }
 
-    // 2. Product hợp lệ
-    const prods = ProductDB.get();
-    const active = ProductDB.getActive();
-    if (!prods.includes(active)) ProductDB.setActive(prods[0] || 'GemCloudPhone');
-
-    // 3. Migrate ALL bugs (dùng getAll, không filter product)
-    const statusMap = {
-        'New': 'Đang xử lí', 'In Progress': 'Đang xử lí', 'Testing': 'Chưa có P.A', 'Done': 'Đã xử lí',
-        'Reopen': 'Đang xử lí', 'Mới': 'Đang xử lí', 'Mở lại': 'Đang xử lí', 'Đang kiểm tra': 'Chưa có P.A',
-        // Legacy Vietnamese statuses (4 trạng thái cũ → 3 trạng thái mới)
-        'Thông báo': 'Đang xử lí', 'Đang xử lý': 'Đang xử lí', 'Hoàn thành': 'Đã xử lí', 'Chưa có phương án': 'Chưa có P.A'
-    };
-    const sevMap = { 'Critical': 'Nghiêm trọng', 'High': 'Nghiêm trọng', 'Medium': 'Nghiêm trọng', 'Low': 'Thấp', 'Cao': 'Nghiêm trọng', 'Trung bình': 'Nghiêm trọng' };
-    const typeMap = { 'UI': 'Giao diện', 'Performance': 'Hiệu năng', 'Crash': 'Sập ứng dụng', 'Other': 'Khác' };
-
-    const allBugs = BugDB.getAll();
-    allBugs.forEach(b => {
-        if (!b.product) b.product = 'GemCloudPhone';
-        if (statusMap[b.status]) b.status = statusMap[b.status];
-        if (sevMap[b.severity]) b.severity = sevMap[b.severity];
-        if (typeMap[b.type]) b.type = typeMap[b.type];
-        if (b.status === 'Đã xử lí' && !b.completedDate) b.completedDate = b.updatedAt || b.createdAt;
-    });
-    BugDB.save(allBugs);
-
-    // 4. Migrate improvements
-    const impStatusMap = { 'Idea': 'Ý tưởng', 'Approved': 'Đã duyệt', 'Doing': 'Đang làm', 'Done': 'Đã xử lí' };
-    const priMap = { 'High': 'Cao', 'Medium': 'Trung bình', 'Low': 'Thấp' };
-    const imps = ImpDB.get();
-    imps.forEach(i => {
-        if (impStatusMap[i.status]) i.status = impStatusMap[i.status];
-        if (priMap[i.priority]) i.priority = priMap[i.priority];
-    });
-    ImpDB.save(imps);
-
-    // 5. Render
     renderProductSelect();
     renderDevDatalist();
-    console.log('[INIT] Active:', ProductDB.getActive(), '| All bugs:', BugDB.getAll().length, '| Filtered:', BugDB.get().length);
+    populateTypeFilter();
+    populateModuleFilter();
     renderDashboard();
+    renderBugTable();
+    renderImprovements();
+    renderAlerts();
 
-    // 6. Tự động cập nhật data mỗi 10 giây
     DataSync.startAutoRefresh(10000);
-
-    // 7. Migrate: chuyển attachment cũ (IndexedDB fileId) lên server
-    if (isServer) {
-        const migrateAllBugs = BugDB.getAll();
-        let migrated = false;
-        for (const bug of migrateAllBugs) {
-            if (!bug.attachments || bug.attachments.length === 0) continue;
-            const newAtts = [];
-            for (const ref of bug.attachments) {
-                if (ref.startsWith('/uploads/') || ref.startsWith('data:')) {
-                    newAtts.push(ref);
-                    continue;
-                }
-                // Legacy IndexedDB fileId → tải từ IndexedDB rồi upload lên server
-                try {
-                    const dataUrl = await FileStore.get(ref);
-                    if (!dataUrl) {
-                        console.warn('[Migrate] Không tìm thấy file trong IndexedDB:', ref, '- bỏ qua');
-                        continue;
-                    }
-                    const blob = await (await fetch(dataUrl)).blob();
-                    const ext = dataUrl.startsWith('data:video') ? '.mp4' : '.jpg';
-                    const url = await uploadToServer(blob, ref + ext);
-                    newAtts.push(url);
-                    migrated = true;
-                    console.log('[Migrate] Đã chuyển', ref, '→', url);
-                } catch (e) {
-                    console.warn('[Migrate] Lỗi migrate file:', ref, e);
-                }
-            }
-            bug.attachments = newAtts;
-        }
-        if (migrated) {
-            BugDB.save(migrateAllBugs);
-            renderDashboard();
-            toast('🔄 Đã chuyển ảnh/video cũ lên server!', 'success');
-        }
-    }
+    console.log('[INIT] Active:', ProductDB.getActive(), '| Bugs:', Cache.bugs.length, '| Improvements:', Cache.improvements.length);
 })();
