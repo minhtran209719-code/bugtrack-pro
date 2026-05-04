@@ -34,3 +34,6 @@ English learn/
 
 # Claude Code workspace
 .claude/
+
+# Legacy server fallback (chỉ dùng local khi máy không build được better-sqlite3)
+server-legacy.js

@@ -25,9 +25,6 @@
                 <li class="nav-item" data-page="improvements" title="Cải tiến">
                     <span class="nav-icon">🚀</span> <span class="nav-label">Cải tiến</span>
                 </li>
-                <li class="nav-item" data-page="device-summary" title="Tổng hợp thiết bị">
-                    <span class="nav-icon">📱</span> <span class="nav-label">Tổng hợp thiết bị</span>
-                </li>
                 <li class="nav-item" data-page="alerts" title="Cảnh báo">
                     <span class="nav-icon">🚨</span> <span class="nav-label">Cảnh báo</span>
                     <span id="alert-badge" class="alert-badge" hidden>0</span>
@@ -224,24 +221,10 @@
                 <div id="imp-empty" class="empty-state" hidden>Chưa có đề xuất cải tiến nào.</div>
             </section>
 
-            <!-- ========== DEV TEAM ========== -->
-            <!-- ========== DEVICE SUMMARY ========== -->
-            <section id="page-device-summary" class="page">
-                <div class="page-header">
-                    <h2>📱 Tổng hợp lỗi theo thiết bị</h2>
-                    <div class="page-header-right">
-                        <select id="ds-product-select" class="product-select-inline"></select>
-                    </div>
-                </div>
-
-                <!-- Device cards with bug lists -->
-                <div id="ds-devices"></div>
-            </section>
-
             <!-- ========== ALERTS ========== -->
             <section id="page-alerts" class="page">
-                <h2>🚨 Cảnh báo & Nhắc việc</h2>
-                <p class="page-desc">Lỗi quá hạn xử lý sẽ hiển thị tại đây.</p>
+                <h2>🚨 Cảnh báo lỗi nghiêm trọng</h2>
+                <p class="page-desc">Lỗi mức độ <strong>Nghiêm trọng</strong> chưa được xử lí sẽ hiển thị tại đây.</p>
                 <div id="alert-list" class="alert-list"></div>
                 <div id="alert-empty" class="empty-state" hidden>Không có cảnh báo. Mọi thứ đang ổn! 🎉</div>
             </section>

@@ -392,7 +392,6 @@ function navigateTo(page) {
     if (page === 'dashboard') renderDashboard();
     if (page === 'bugs') { renderProductSelect(); renderBugTable(); }
     if (page === 'improvements') renderImprovements();
-    if (page === 'device-summary') renderDeviceSummary();
     if (page === 'alerts') renderAlerts();
 }
 
@@ -1560,56 +1559,39 @@ function deleteImp(id) {
 
 // ===== ALERTS =====
 function renderAlerts() {
-    const bugs = BugDB.get().filter(b => b.status !== 'Đã xử lí');
-    const alerts = [];
+    // Chỉ cảnh báo bug NGHIÊM TRỌNG và CHƯA xử lí
+    const alerts = BugDB.get().filter(b =>
+        b.severity === 'Nghiêm trọng' && b.status !== 'Đã xử lí'
+    );
 
-    bugs.forEach(b => {
-        const hrs = hoursOverdue(b);
-        if (hrs > 0) {
-            const limits = { 'Nghiêm trọng': 24, 'Cao': 48, 'Trung bình': 72, 'Thấp': 168 };
-            alerts.push({
-                bug: b,
-                hours: Math.round(hrs),
-                limit: limits[b.severity],
-                type: 'overdue'
-            });
-        }
-        if (isDeadlinePassed(b)) {
-            const dlHrs = Math.round((Date.now() - new Date(b.deadline).getTime()) / 3600000);
-            alerts.push({
-                bug: b,
-                hours: dlHrs,
-                type: 'deadline'
-            });
-        }
+    // Sort: Chưa có P.A trước, sau đó theo ngày tạo cũ trước (lâu nhất ưu tiên)
+    const statusOrder = { 'Chưa có P.A': 0, 'Đang xử lí': 1 };
+    alerts.sort((a, b) => {
+        const sa = statusOrder[a.status] ?? 9;
+        const sb = statusOrder[b.status] ?? 9;
+        if (sa !== sb) return sa - sb;
+        return new Date(a.createdAt) - new Date(b.createdAt);
     });
-
-    // Deduplicate by bug id
-    const seen = new Set();
-    const unique = alerts.filter(a => {
-        if (seen.has(a.bug.id)) return false;
-        seen.add(a.bug.id);
-        return true;
-    });
-
-    unique.sort((a, b) => b.hours - a.hours);
 
     const list = document.getElementById('alert-list');
     const empty = document.getElementById('alert-empty');
 
-    if (unique.length === 0) { list.innerHTML = ''; empty.hidden = false; return; }
+    if (alerts.length === 0) { list.innerHTML = ''; empty.hidden = false; return; }
     empty.hidden = true;
 
-    list.innerHTML = unique.map(a => {
-        const isCritical = a.bug.severity === 'Nghiêm trọng' || a.bug.severity === 'Cao';
-        return `<div class="alert-item ${isCritical ? '' : 'warn'}">
-            <div class="alert-icon">${isCritical ? '🔴' : '🟡'}</div>
+    const now = Date.now();
+    list.innerHTML = alerts.map(b => {
+        const hours = Math.floor((now - new Date(b.createdAt).getTime()) / 3600000);
+        const days = Math.floor(hours / 24);
+        const ageLabel = days > 0 ? `${days} ngày` : `${hours}h`;
+        return `<div class="alert-item">
+            <div class="alert-icon">🔴</div>
             <div class="alert-info">
-                <div class="alert-title">${a.bug.displayId || a.bug.id} - ${esc(a.bug.name)}</div>
-                <div class="alert-desc">${severityBadge(a.bug.severity)} · ${statusBadge(a.bug.status)} · Dev: ${esc(a.bug.assignee || 'Chưa phân công')}</div>
+                <div class="alert-title">${b.displayId || b.id} - ${esc(b.name)}</div>
+                <div class="alert-desc">${severityBadge(b.severity)} · ${statusBadge(b.status)} · Dev: ${esc(b.assignee || 'Chưa phân công')}</div>
             </div>
-            <div class="alert-time">Quá ${a.hours}h</div>
-            <button class="btn-icon" onclick="editBug('${a.bug.id}')" title="Xử lý">⚡</button>
+            <div class="alert-time">Đã ${ageLabel}</div>
+            <button class="btn-icon" onclick="editBug('${b.id}')" title="Xử lý">⚡</button>
         </div>`;
     }).join('');
 
@@ -1617,8 +1599,9 @@ function renderAlerts() {
 }
 
 function updateAlertBadge() {
-    const bugs = BugDB.get().filter(b => b.status !== 'Đã xử lí');
-    const count = bugs.filter(b => isOverdue(b) || isDeadlinePassed(b)).length;
+    const count = BugDB.get().filter(b =>
+        b.severity === 'Nghiêm trọng' && b.status !== 'Đã xử lí'
+    ).length;
     const badge = document.getElementById('alert-badge');
     if (count > 0) {
         badge.textContent = count;
@@ -1945,134 +1928,10 @@ function closeAllDropdowns() {
 }
 document.addEventListener('click', closeAllDropdowns);
 
+// No-op stubs cho code legacy còn gọi tới (đã bỏ trang Tổng hợp thiết bị)
+function refreshDeviceSummaryIfActive() {}
+function renderDeviceSummary() {}
 
-// ===== DEVICE SUMMARY =====
-function refreshDeviceSummaryIfActive() {
-    const page = document.getElementById('page-device-summary');
-    if (page && page.classList.contains('active')) renderDeviceSummary();
-}
-
-document.getElementById('ds-product-select').addEventListener('change', function() {
-    ProductDB.setActive(this.value);
-    renderProductSelect();
-    renderDeviceSummary();
-});
-
-function renderDeviceSummary() {
-    // Sync product selector
-    const products = ProductDB.get();
-    const active = ProductDB.getActive();
-    const dsSel = document.getElementById('ds-product-select');
-    dsSel.innerHTML = products.map(p => `<option value="${esc(p)}" ${p===active?'selected':''}>${esc(p)}</option>`).join('');
-
-    const bugs = BugDB.get();
-
-    // Group by device (module)
-    const deviceMap = {};
-    bugs.forEach(b => {
-        const dev = b.module || 'All';
-        if (!deviceMap[dev]) deviceMap[dev] = [];
-        deviceMap[dev].push(b);
-    });
-
-    const devices = Object.keys(deviceMap).sort();
-
-    // Device detail cards
-    const devicesEl = document.getElementById('ds-devices');
-    devicesEl.innerHTML = devices.map(dev => {
-        const devBugs = deviceMap[dev];
-        const total = devBugs.length;
-        const done = devBugs.filter(b => b.status === 'Đã xử lí').length;
-        const rate = total > 0 ? Math.round(done / total * 100) : 0;
-
-        // Sort: unfinished first (critical → medium → low), then finished
-        const statusOrder = { 'Chưa có P.A': 0, 'Đang xử lí': 1, 'Đã xử lí': 2 };
-        const sevOrder = { 'Nghiêm trọng': 0, 'Trung bình': 1, 'Thấp': 2 };
-        devBugs.sort((a, b) => {
-            const sa = statusOrder[a.status] ?? 9;
-            const sb = statusOrder[b.status] ?? 9;
-            if (sa !== sb) return sa - sb;
-            return (sevOrder[a.severity] ?? 9) - (sevOrder[b.severity] ?? 9);
-        });
-
-        const items = devBugs.map((b, idx) => {
-            const isDone = b.status === 'Đã xử lí';
-
-            // Severity tag
-            const sevClass = b.severity === 'Nghiêm trọng' ? 'ds-tag-sev-critical' : b.severity === 'Trung bình' ? 'ds-tag-sev-medium' : 'ds-tag-sev-low';
-
-            // Status tag
-            const stClass = 'ds-tag-st-' + statusColor(b.status);
-
-            // Action text
-            let actionHtml = '';
-            if (isDone) {
-                actionHtml = `<span class="ds-bug-action ds-bug-action-done">✅ Đã xử lý</span>`;
-            } else if (b.status === 'Đang xử lí' && b.assignee) {
-                actionHtml = `<span class="ds-bug-action ds-bug-action-progress">🔄 ${esc(b.assignee)}</span>`;
-            } else if (b.status === 'Chưa có P.A') {
-                actionHtml = `<span class="ds-bug-action ds-bug-action-noplan">❌ Cần PA</span>`;
-            } else if (b.assignee) {
-                actionHtml = `<span class="ds-bug-action ds-bug-action-assigned">👤 ${esc(b.assignee)}</span>`;
-            } else {
-                actionHtml = `<span class="ds-bug-action ds-bug-action-none">⏳ Chưa giao</span>`;
-            }
-
-            // Result
-            let resultHtml = '';
-            if (isDone) {
-                const cd = b.completedDate ? fmtDate(b.completedDate) : fmtDate(b.updatedAt);
-                resultHtml = `<span class="ds-bug-result">✅ ${cd}</span>`;
-            }
-
-            // Note
-            const noteHtml = b.devNote ? `<div class="ds-bug-note">💬 ${esc(b.devNote)}</div>` : '';
-
-            return `<div class="ds-bug-item ${isDone ? 'ds-bug-done' : ''}" onclick="showDetail('${b.id}')">
-                <div class="ds-bug-main">
-                    <span class="ds-bug-stt">${idx + 1}</span>
-                    <div class="ds-bug-info">
-                        <div class="ds-bug-name">${esc(b.name)}</div>
-                        <div class="ds-bug-tags">
-                            <span class="ds-tag ${sevClass}">${esc(b.severity)}</span>
-                            <span class="ds-tag ds-tag-status ${stClass}">${esc(b.status)}</span>
-                            ${b.reporter ? `<span class="ds-tag ds-tag-reporter">👤 ${esc(b.reporter)}</span>` : ''}
-                            <span class="ds-tag ds-tag-date">📅 ${b.foundDate ? fmtDate(b.foundDate) : fmtDate(b.createdAt)}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="ds-bug-right">
-                    ${actionHtml}
-                    ${resultHtml}
-                </div>
-                ${noteHtml}
-            </div>`;
-        }).join('');
-
-        const rateColor = rate >= 70 ? '#10b981' : rate >= 40 ? '#d97706' : '#ef4444';
-
-        return `<div class="ds-device-card" id="ds-device-${esc(dev)}">
-            <div class="ds-device-header">
-                <div class="ds-device-left">
-                    <span>📱</span>
-                    <h3>${esc(dev)}</h3>
-                    <span class="ds-device-count">${total} lỗi</span>
-                </div>
-                <div class="ds-device-right">
-                    <div class="ds-device-bar-wrap">
-                        <div class="ds-device-bar"><div class="ds-device-bar-fill" style="width:${rate}%;background:${rateColor}"></div></div>
-                    </div>
-                    <span class="ds-device-rate" style="color:${rateColor}">${done}/${total} (${rate}%)</span>
-                </div>
-            </div>
-            <div class="ds-bug-list">${items}</div>
-        </div>`;
-    }).join('') || '';
-}
-
-// ===== INIT =====
-// Server đã xử lý migration enum (status/severity/type) trong DAL khi import data.json.
-// FE chỉ cần load Cache và render.
 (async function init() {
     try {
         await DataSync.loadAll();

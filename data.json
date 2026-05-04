@@ -298,7 +298,7 @@
         {
           "time": "2026-04-29T09:19:24.950Z",
           "action": "Cập nhật",
-          "detail": "Trạng thái: \"Chưa có P.A\" ��� \"Đã xử lí\""
+          "detail": "Trạng thái: \"Chưa có P.A\" ��������� \"Đã xử lí\""
         },
         {
           "time": "2026-04-29T09:19:26.446Z",
@@ -351,7 +351,7 @@
         {
           "time": "2026-04-16T05:19:56.821Z",
           "action": "Cập nhật",
-          "detail": "Mô tả: \"Không stream được, mất kết nối. Admin view bình thư��ng\" → \"Không stream được, mất kết nối. Admin view bình thường or ��ổi trình duyệt khác\""
+          "detail": "Mô tả: \"Không stream được, mất kết nối. Admin view bình thư��ng\" ����������������� \"Không stream được, mất kết nối. Admin view bình thường or ��ổi trình duyệt khác\""
         }
       ],
       "completedDate": ""
@@ -403,7 +403,7 @@
       "id": "BUG-0009",
       "product": "GemCloudPhone",
       "createdAt": "2026-04-16T05:00:20.426Z",
-      "updatedAt": "2026-04-29T09:44:18.971Z",
+      "updatedAt": "2026-05-04T08:21:35.053Z",
       "history": [
         {
           "time": "2026-04-16T05:00:20.426Z",
@@ -454,14 +454,20 @@
           "time": "2026-04-29T09:44:18.971Z",
           "action": "Cập nhật",
           "detail": "Người xử lý: \"Tùng\" → \"(trống)\""
+        },
+        {
+          "time": "2026-05-04T08:21:35.053Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú TT: \"(trống)\" → \"(trống)\""
         }
       ],
-      "completedDate": ""
+      "completedDate": "",
+      "supportNote": ""
     },
     {
       "name": "Chất lượng hình ảnh thấp khi sử dụng or chơi game",
       "module": "All",
-      "description": "Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư���ng giật lag",
+      "description": "Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag",
       "type": "Giao diện",
       "severity": "Nghiêm trọng",
       "status": "Đã xử lí",
@@ -476,7 +482,7 @@
       "id": "BUG-0010",
       "product": "GemCloudPhone",
       "createdAt": "2026-04-16T08:16:44.930Z",
-      "updatedAt": "2026-04-29T10:42:12.094Z",
+      "updatedAt": "2026-05-04T07:58:37.208Z",
       "history": [
         {
           "time": "2026-04-16T08:16:44.930Z",
@@ -506,7 +512,22 @@
         {
           "time": "2026-04-29T10:42:12.094Z",
           "action": "Cập nhật",
-          "detail": "Mô tả: \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư���ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag\""
+          "detail": "Mô tả: \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư����ng giật lag\" ��� \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag\""
+        },
+        {
+          "time": "2026-04-29T14:14:59.885Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Màn mờ, kh�� nhìn, chất lượng thấp. Có hiện tư���ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tương giật lag\""
+        },
+        {
+          "time": "2026-05-04T04:05:43.501Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tư��ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tương giật lag\""
+        },
+        {
+          "time": "2026-05-04T07:58:37.208Z",
+          "action": "Cập nhật",
+          "detail": "Mô tả: \"Màn mờ, khó nhìn, ch�������t l��ợng thấp. Có hiện tư��ng giật lag\" → \"Màn mờ, khó nhìn, chất lượng thấp. Có hiện tượng giật lag\""
         }
       ],
       "completedDate": "2026-04-18T03:47:14.811Z",
@@ -534,7 +555,7 @@
       "history": [
         {
           "time": "2026-04-16T08:17:55.833Z",
-          "action": "Tạo m�������i",
+          "action": "Tạo m��������i",
           "detail": "Tạo lỗi \"Lỗi xoay ngang màn hình\""
         },
         {
@@ -571,14 +592,14 @@
       "status": "Đã xử lí",
       "reporter": "Thắng",
       "foundDate": "2026-04-16",
-      "assignee": "",
+      "assignee": "Quang",
       "deadline": "",
       "devNote": "Thêm cơ chế backup db trước khi cap nhật version",
       "attachments": [],
       "id": "BUG-0012",
       "product": "GemLogin",
       "createdAt": "2026-04-18T02:59:11.605Z",
-      "updatedAt": "2026-04-20T08:13:09.999Z",
+      "updatedAt": "2026-05-04T09:22:01.560Z",
       "history": [
         {
           "time": "2026-04-18T02:59:11.605Z",
@@ -608,12 +629,17 @@
         {
           "time": "2026-04-20T08:12:46.516Z",
           "action": "Cập nhật",
-          "detail": "Ghi chú: \"Đã\" → \"Thêm cơ\""
+          "detail": "Ghi chú: \"Đ��\" → \"Thêm cơ\""
         },
         {
           "time": "2026-04-20T08:13:09.999Z",
           "action": "Cập nhật",
           "detail": "Ghi chú: \"Thêm cơ\" → \"Thêm cơ chế backup db trước khi cap nhật version\""
+        },
+        {
+          "time": "2026-05-04T09:22:01.558Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Quang\""
         }
       ],
       "completedDate": "2026-04-20T08:12:31.998Z"
@@ -627,14 +653,14 @@
       "status": "Đã xử lí",
       "reporter": "Thắng",
       "foundDate": "2026-04-17",
-      "assignee": "",
+      "assignee": "Quang",
       "deadline": "",
       "devNote": "Ko gặp vấn đề này",
       "attachments": [],
       "id": "BUG-0013",
       "product": "GemLogin",
       "createdAt": "2026-04-18T03:06:13.068Z",
-      "updatedAt": "2026-04-21T09:38:37.282Z",
+      "updatedAt": "2026-05-04T09:22:13.809Z",
       "history": [
         {
           "time": "2026-04-18T03:06:13.068Z",
@@ -650,9 +676,24 @@
           "time": "2026-04-21T09:38:37.282Z",
           "action": "Cập nhật",
           "detail": "Trạng thái: \"Thông báo\" → \"Hoàn thành\""
+        },
+        {
+          "time": "2026-05-04T09:22:08.563Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Quang\""
+        },
+        {
+          "time": "2026-05-04T09:22:10.340Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đã xử lí\" → \"Chưa có P.A\""
+        },
+        {
+          "time": "2026-05-04T09:22:13.809Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Chưa có P.A\" → \"Đã xử lí\""
         }
       ],
-      "completedDate": "2026-04-21T09:38:37.281Z"
+      "completedDate": "2026-05-04T09:22:13.808Z"
     },
     {
       "name": "Task vụ cũ tạo từ lâu giờ chỉnh sửa lại vẫn thấy phone đã hết hạn có trong danh sách chọn phone",
@@ -672,12 +713,22 @@
       "id": "BUG-0015",
       "product": "GemCloudPhone",
       "createdAt": "2026-04-18T03:16:50.407Z",
-      "updatedAt": "2026-04-18T03:16:50.407Z",
+      "updatedAt": "2026-05-04T07:27:41.909Z",
       "history": [
         {
           "time": "2026-04-18T03:16:50.407Z",
           "action": "Tạo mới",
-          "detail": "Tạo lỗi \"Task vụ cũ tạo từ lâu giờ chỉnh sửa l�����i vẫn thấy phone đã h����t hạn có trong danh sách chọn phone\""
+          "detail": "Tạo lỗi \"Task vụ cũ tạo từ lâu giờ chỉnh sửa l������i vẫn thấy phone đã h����t hạn có trong danh sách chọn phone\""
+        },
+        {
+          "time": "2026-05-04T07:27:37.770Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Tùng\""
+        },
+        {
+          "time": "2026-05-04T07:27:41.908Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"Tùng\" → \"(trống)\""
         }
       ]
     },
@@ -757,7 +808,7 @@
         {
           "time": "2026-04-18T03:31:23.484Z",
           "action": "Tạo mới",
-          "detail": "Tạo lỗi \"Phone đang mất kết nối chắc chắn không chạy đ��ợc nhưng log vẫn báo đã chạy thành công\""
+          "detail": "Tạo lỗi \"Phone đang mất kết nối chắc chắn không chạy đ���ợc nhưng log vẫn báo đã chạy thành công\""
         }
       ]
     },
@@ -797,21 +848,31 @@
       "status": "Đang xử lí",
       "reporter": "Thắng",
       "foundDate": "2026-04-18",
-      "assignee": "",
+      "assignee": "Tùng",
       "deadline": "",
-      "devNote": "",
+      "devNote": "Khó dùng ở đâu, muốn cải thiện chỗ nào?",
       "attachments": [
         "/uploads/641f9cfafb0407a5.png"
       ],
       "id": "BUG-0019",
       "product": "GemCloudPhone",
       "createdAt": "2026-04-18T03:45:35.193Z",
-      "updatedAt": "2026-04-18T03:45:35.193Z",
+      "updatedAt": "2026-05-04T07:33:54.891Z",
       "history": [
         {
           "time": "2026-04-18T03:45:35.193Z",
           "action": "Tạo m�������i",
           "detail": "Tạo lỗi \"Nút xoay không xoay màn hình phone theo mà xoay m��n hình hiển thị\""
+        },
+        {
+          "time": "2026-05-04T07:33:31.013Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Tùng\""
+        },
+        {
+          "time": "2026-05-04T07:33:54.891Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú XL: \"(trống)\" → \"Khó dùng ở đâu, muốn cải thiện chỗ nào?\""
         }
       ]
     },
@@ -824,16 +885,16 @@
       "status": "Đang xử lí",
       "reporter": "",
       "foundDate": "2026-04-18",
-      "assignee": "",
+      "assignee": "Tùng",
       "deadline": "",
-      "devNote": "",
+      "devNote": "disconnect là hết 5p nó tự ngắt stream/ stream lỗi còn phone vẫn online",
       "attachments": [
         "/uploads/84d50f71bd392434.png"
       ],
       "id": "BUG-0020",
       "product": "GemCloudPhone",
       "createdAt": "2026-04-18T03:46:46.856Z",
-      "updatedAt": "2026-04-29T09:53:07.266Z",
+      "updatedAt": "2026-05-04T07:31:34.412Z",
       "history": [
         {
           "time": "2026-04-18T03:46:46.856Z",
@@ -859,6 +920,21 @@
           "time": "2026-04-29T09:53:07.266Z",
           "action": "Cập nhật",
           "detail": "TT Test: \"Đã test\" → \"Chưa test\""
+        },
+        {
+          "time": "2026-05-04T07:30:45.376Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Tùng\""
+        },
+        {
+          "time": "2026-05-04T07:30:58.746Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú XL: \"(trống)\" → \"disconnect la\""
+        },
+        {
+          "time": "2026-05-04T07:31:34.411Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú XL: \"disconnect la\" → \"disconnect là hết 5p nó tự ngắt stream/ stream lỗi còn phone vẫn online\""
         }
       ],
       "testStatus": "Chưa test"
@@ -885,7 +961,7 @@
       "history": [
         {
           "time": "2026-04-18T03:47:31.188Z",
-          "action": "Tạo mới",
+          "action": "Tạo m���i",
           "detail": "Tạo lỗi \"Thỉnh tho���ng đang xem phone thì lại bị như hình\""
         }
       ]
@@ -993,7 +1069,7 @@
         {
           "time": "2026-04-18T03:51:56.140Z",
           "action": "Cập nhật",
-          "detail": "Mô tả: \"(trống)\" ����� \"Bấm reload lại phone cũng không hiển thị lại\""
+          "detail": "Mô t��: \"(trống)\" ����� \"Bấm reload lại phone cũng không hiển thị lại\""
         },
         {
           "time": "2026-04-27T17:37:48.903Z",
@@ -1356,7 +1432,7 @@
         {
           "time": "2026-04-18T04:22:49.015Z",
           "action": "Tạo mới",
-          "detail": "Tạo lỗi \"Bấm vào nâng cấp thì không hiển thị giao diện mua nâng cấp để tăng số lượng phone chạy đồng thời mà ra giao diện thuê phone\""
+          "detail": "Tạo lỗi \"Bấm vào nâng cấp thì không hiển thị giao diện mua n��ng cấp để tăng số lượng phone chạy đồng thời mà ra giao diện thuê phone\""
         },
         {
           "time": "2026-04-20T10:40:10.874Z",
@@ -1447,7 +1523,7 @@
       "completedDate": "2026-04-28T09:49:35.348Z"
     },
     {
-      "name": "Sai logic hiển thị số lượng phone thực - Đấu phone",
+      "name": "Sai logic hiển thị số lượng phone thực - Đ���u phone",
       "module": "All",
       "description": "Số lượng phone thực tế sai so với sl thật có",
       "type": "Logic",
@@ -1514,49 +1590,76 @@
       "description": "",
       "type": "Giao diện",
       "severity": "Nghiêm trọng",
-      "status": "Đang xử lí",
+      "status": "Đã xử lí",
       "reporter": "Thắng",
       "foundDate": "2026-04-28",
-      "assignee": "",
+      "assignee": "Quang",
       "deadline": "",
-      "devNote": "",
+      "devNote": "Tối ưu click check và load",
       "attachments": [],
       "id": "BUG-0039",
       "product": "GemLogin",
       "createdAt": "2026-04-28T06:54:28.876Z",
-      "updatedAt": "2026-04-28T06:54:28.876Z",
+      "updatedAt": "2026-05-04T09:22:46.752Z",
       "history": [
         {
           "time": "2026-04-28T06:54:28.876Z",
           "action": "Tạo mới",
           "detail": "Tạo lỗi \"Giao diện chậm trên màn profile và trong màn viết script\""
+        },
+        {
+          "time": "2026-05-04T09:22:23.102Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Quang\""
+        },
+        {
+          "time": "2026-05-04T09:22:25.213Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lí\" → \"Đã xử lí\""
+        },
+        {
+          "time": "2026-05-04T09:22:46.752Z",
+          "action": "Cập nhật",
+          "detail": "Ghi chú XL: \"(trống)\" → \"Tối ưu click check và load\""
         }
-      ]
+      ],
+      "completedDate": "2026-05-04T09:22:25.213Z"
     },
     {
-      "name": "Lỗi không đăng nhập được facebook, tự động logout sau khi đăng nhập (cloud - local có gặp nhưng chuyển về chrome 133 sẽ kko bị nữa)",
+      "name": "Lỗi không ��ăng nhập được facebook, tự động logout sau khi đăng nhập (cloud - local có gặp nhưng chuyển về chrome 133 sẽ kko bị nữa)",
       "module": "All",
       "description": "https://drive.google.com/file/d/10MbjDpX_b5NwW3cdDkHgHPLFZdgRJZcI/view?usp=sharing",
       "type": "Giao diện",
       "severity": "Nghiêm trọng",
-      "status": "Đang xử lí",
+      "status": "Chưa có P.A",
       "reporter": "Thắng",
       "foundDate": "2026-04-28",
-      "assignee": "",
+      "assignee": "Quang",
       "deadline": "",
       "devNote": "",
       "attachments": [],
       "id": "BUG-0040",
       "product": "GemLogin",
       "createdAt": "2026-04-28T06:55:51.096Z",
-      "updatedAt": "2026-04-28T06:55:51.096Z",
+      "updatedAt": "2026-05-04T09:23:02.690Z",
       "history": [
         {
           "time": "2026-04-28T06:55:51.096Z",
           "action": "Tạo mới",
           "detail": "Tạo l���i \"Lỗi không đăng nhập được facebook, tự động logout sau khi đăng nhập (cloud - local c�� gặp nhưng chuyển về chrome 133 sẽ kko bị nữa)\""
+        },
+        {
+          "time": "2026-05-04T09:22:48.456Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Quang\""
+        },
+        {
+          "time": "2026-05-04T09:23:02.690Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lí\" → \"Chưa có P.A\""
         }
-      ]
+      ],
+      "completedDate": ""
     },
     {
       "name": "Lỗi không mở được tin nhắn outlook với chrome 137 của mac",
@@ -1564,10 +1667,10 @@
       "description": "",
       "type": "Giao diện",
       "severity": "Nghiêm trọng",
-      "status": "Đang xử lí",
+      "status": "Chưa có P.A",
       "reporter": "Thắng",
       "foundDate": "2026-04-28",
-      "assignee": "",
+      "assignee": "Quang",
       "deadline": "",
       "devNote": "",
       "attachments": [
@@ -1576,14 +1679,25 @@
       "id": "BUG-0041",
       "product": "GemLogin",
       "createdAt": "2026-04-28T06:57:03.224Z",
-      "updatedAt": "2026-04-28T06:57:03.224Z",
+      "updatedAt": "2026-05-04T09:23:01.423Z",
       "history": [
         {
           "time": "2026-04-28T06:57:03.224Z",
           "action": "Tạo mới",
           "detail": "Tạo lỗi \"Lỗi không mở được tin nhắn outlook với chrome 137 của mac\""
+        },
+        {
+          "time": "2026-05-04T09:22:59.058Z",
+          "action": "Cập nhật",
+          "detail": "Người xử lý: \"(trống)\" → \"Quang\""
+        },
+        {
+          "time": "2026-05-04T09:23:01.423Z",
+          "action": "Cập nhật",
+          "detail": "Trạng thái: \"Đang xử lí\" → \"Chưa có P.A\""
         }
-      ]
+      ],
+      "completedDate": ""
     }
   ],
   "improvements": [
