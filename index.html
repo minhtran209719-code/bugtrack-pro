@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BugTrack Pro - Quản lý lỗi & Tiến độ sản phẩm</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260508h">
 </head>
 <body>
     <div id="app">
@@ -22,8 +22,8 @@
                 <li class="nav-item" data-page="bugs" title="Quản lý lỗi">
                     <span class="nav-icon">🐛</span> <span class="nav-label">Quản lý lỗi</span>
                 </li>
-                <li class="nav-item" data-page="improvements" title="Cải tiến">
-                    <span class="nav-icon">🚀</span> <span class="nav-label">Cải tiến</span>
+                <li class="nav-item" data-page="improvements" title="Hạng mục xử lí & tính năng mới">
+                    <span class="nav-icon">🚀</span> <span class="nav-label">Hạng mục & tính năng</span>
                 </li>
                 <li class="nav-item" data-page="alerts" title="Cảnh báo">
                     <span class="nav-icon">🚨</span> <span class="nav-label">Cảnh báo</span>
@@ -170,11 +170,20 @@
                     </select>
                 </div>
 
+                <!-- Bulk action bar -->
+                <div id="bug-bulk-bar" class="bulk-bar" hidden>
+                    <span class="bulk-count">Đã chọn <strong id="bug-bulk-count">0</strong> lỗi</span>
+                    <span class="bulk-spacer"></span>
+                    <button class="btn-secondary" id="btn-bug-bulk-clear">Bỏ chọn</button>
+                    <button class="btn-danger" id="btn-bug-bulk-delete">🗑️ Xóa đã chọn</button>
+                </div>
+
                 <!-- Bug table -->
                 <div class="table-wrap">
                     <table id="bug-table" class="bug-table">
                         <thead>
                             <tr class="th-group">
+                                <th rowspan="2" class="check-col"><input type="checkbox" id="bug-check-all" title="Chọn tất cả"></th>
                                 <th colspan="7" class="th-group-support">📞 Support điền</th>
                                 <th colspan="5" class="th-group-dev">👨‍💻 Dev điền</th>
                             </tr>
@@ -201,24 +210,56 @@
             </section>
 
             <!-- ========== KANBAN ========== -->
-            <!-- ========== IMPROVEMENTS ========== -->
+            <!-- ========== IMPROVEMENTS / HẠNG MỤC ========== -->
             <section id="page-improvements" class="page">
                 <div class="page-header">
-                    <h2>🚀 Quản lý cải tiến</h2>
-                    <button id="btn-new-imp" class="btn-primary">➕ Đề xuất cải tiến</button>
+                    <h2>🚀 Hạng mục xử lí & tính năng mới</h2>
+                    <button id="btn-new-imp" class="btn-primary">➕ Thêm hạng mục</button>
                 </div>
                 <div class="filter-bar">
-                    <input type="text" id="imp-search" placeholder="🔍 Tìm kiếm...">
+                    <input type="text" id="imp-search" placeholder="🔍 Tìm theo tên / mô tả...">
                     <select id="imp-filter-status">
-                        <option value="all">Tất cả</option>
-                        <option value="Ý tưởng">💡 Ý tưởng</option>
-                        <option value="Đã duyệt">✅ Đã duyệt</option>
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Mới">📋 Mới</option>
                         <option value="Đang làm">🔄 Đang làm</option>
-                        <option value="Hoàn thành">🎉 Hoàn thành</option>
+                        <option value="Đã xong">✅ Đã xong</option>
+                    </select>
+                    <select id="imp-filter-priority">
+                        <option value="all">Tất cả ưu tiên</option>
+                        <option value="Cao">🔴 Cao</option>
+                        <option value="Thấp">🟢 Thấp</option>
                     </select>
                 </div>
-                <div id="imp-list" class="imp-list"></div>
-                <div id="imp-empty" class="empty-state" hidden>Chưa có đề xuất cải tiến nào.</div>
+                <!-- Bulk action bar -->
+                <div id="imp-bulk-bar" class="bulk-bar" hidden>
+                    <span class="bulk-count">Đã chọn <strong id="imp-bulk-count">0</strong> hạng mục</span>
+                    <span class="bulk-spacer"></span>
+                    <button class="btn-secondary" id="btn-imp-bulk-clear">Bỏ chọn</button>
+                    <button class="btn-danger" id="btn-imp-bulk-delete">🗑️ Xóa đã chọn</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="imp-table" class="bug-table">
+                        <thead>
+                            <tr>
+                                <th class="check-col"><input type="checkbox" id="imp-check-all" title="Chọn tất cả"></th>
+                                <th>STT</th>
+                                <th>Tên hạng mục</th>
+                                <th>Mô tả</th>
+                                <th>Ngày tạo</th>
+                                <th>Người đề xuất</th>
+                                <th>Người xử lý</th>
+                                <th>Ưu tiên</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày XL</th>
+                                <th>Ghi chú</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="imp-tbody"></tbody>
+                    </table>
+                </div>
+                <div id="imp-empty" class="empty-state" hidden>Chưa có hạng mục nào. Nhấn "Thêm hạng mục" để bắt đầu.</div>
             </section>
 
             <!-- ========== ALERTS ========== -->
@@ -325,42 +366,23 @@
     <div id="imp-modal" class="modal" hidden>
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="imp-modal-title">Đề xuất cải tiến</h3>
+                <h3 id="imp-modal-title">Thêm hạng mục</h3>
                 <button class="modal-close" id="imp-modal-close">✕</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="imp-edit-id">
                 <div class="form-group">
-                    <label>Tên cải tiến <span class="req">*</span></label>
-                    <input type="text" id="imp-name" placeholder="VD: Thêm chế độ dark mode">
+                    <label>Tên hạng mục <span class="req">*</span></label>
+                    <input type="text" id="imp-name" placeholder="VD: Thêm chế độ dark mode / Cải tiến tốc độ load trang">
                 </div>
                 <div class="form-group">
-                    <label>Mô tả</label>
-                    <textarea id="imp-desc" rows="3" placeholder="Mô tả chi tiết nội dung cải tiến..."></textarea>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Độ ưu tiên</label>
-                        <select id="imp-priority">
-                            <option value="Cao">🔴 Cao</option>
-                            <option value="Trung bình" selected>🟡 Trung bình</option>
-                            <option value="Thấp">🟢 Thấp</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Trạng thái</label>
-                        <select id="imp-status">
-                            <option value="Ý tưởng">💡 Ý tưởng</option>
-                            <option value="Đã duyệt">✅ Đã duyệt</option>
-                            <option value="Đang làm">🔄 Đang làm</option>
-                            <option value="Hoàn thành">🎉 Hoàn thành</option>
-                        </select>
-                    </div>
+                    <label>Mô tả chi tiết</label>
+                    <textarea id="imp-desc" rows="3" placeholder="Mô tả nội dung hạng mục, lý do cần làm, kết quả mong muốn..."></textarea>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Người đề xuất</label>
-                        <input type="text" id="imp-proposer" placeholder="VD: Lê Thị C">
+                        <input type="text" id="imp-proposer" placeholder="VD: Tiến">
                     </div>
                     <div class="form-group">
                         <label>Người xử lý</label>
@@ -369,6 +391,8 @@
                         </select>
                     </div>
                 </div>
+                <input type="hidden" id="imp-priority" value="Cao">
+                <input type="hidden" id="imp-status" value="Mới">
             </div>
             <div class="modal-footer">
                 <button id="btn-imp-save" class="btn-primary">💾 Lưu</button>
@@ -408,6 +432,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260508h"></script>
 </body>
 </html>

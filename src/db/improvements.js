@@ -26,6 +26,8 @@ function rowToImp(r) {
         status: r.status,
         proposer: r.proposer,
         assignee: r.assignee,
+        completedDate: r.completed_date,
+        devNote: r.dev_note,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     };
@@ -34,6 +36,7 @@ function rowToImp(r) {
 const FIELD_MAP = {
     name: 'name', description: 'description', priority: 'priority',
     status: 'status', proposer: 'proposer', assignee: 'assignee',
+    completedDate: 'completed_date', devNote: 'dev_note',
 };
 
 function buildWhere(workspaceId, filters = {}) {

@@ -19,6 +19,12 @@ const Cache = {
     lastSync: null,
 };
 
+// Multi-select state cho bulk delete
+const Selection = {
+    bugs: new Set(),
+    imps: new Set(),
+};
+
 async function apiCall(method, path, body, opts = {}) {
     const headers = {};
     let payload;
@@ -655,6 +661,7 @@ function renderBugTable() {
         const sttIdx = startIdx + idx;
         const foundTime = b.foundDate ? fmtDateTime(b.foundDate) : fmtDate(b.createdAt);
         return `<tr class="${rowClass(b)}">
+            <td class="check-col"><input type="checkbox" class="row-check-bug" data-id="${b.id}" ${Selection.bugs.has(b.id)?'checked':''}></td>
             <td class="bug-stt" title="${esc(b.displayId || b.id)}">${sttIdx + 1}</td>
             <td class="bug-name-cell" onclick="showDetail('${b.id}')"><div class="bug-name-text"><span class="sev-dot sev-dot-${b.severity === 'Nghiêm trọng' ? 'critical' : 'low'}" title="${esc(b.severity)}"></span>${esc(b.name)}</div><div class="bug-name-tooltip">${esc(b.severity)} · ${esc(b.name)}</div></td>
             <td class="bug-desc-cell"><div class="inline-editable" contenteditable="true" data-id="${b.id}" data-field="description" data-placeholder="Nhập mô tả...">${esc(b.description || '')}</div></td>
@@ -735,6 +742,15 @@ function renderBugTable() {
             });
         }
     }
+
+    // Bind row checkbox (multi-select bug)
+    tbody.querySelectorAll('.row-check-bug').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) Selection.bugs.add(cb.dataset.id);
+            else Selection.bugs.delete(cb.dataset.id);
+            updateBulkBar('bugs');
+        });
+    });
 
     // Bind action menu toggle
     tbody.querySelectorAll('.action-toggle').forEach(btn => {
@@ -858,6 +874,7 @@ function renderBugTable() {
                 menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Xóa tên</div>` +
                     listDB.getAll().map(d => `<div class="cdrop-item">
                         <span class="cdrop-name" data-val="${esc(d)}">${esc(d)}</span>
+                        <span class="cdrop-edit" data-dev="${esc(d)}" title="Sửa tên">✏️</span>
                         <span class="cdrop-x" data-dev="${esc(d)}" title="Xóa khỏi DS">✕</span>
                     </div>`).join('') +
                     `<div class="cdrop-item cdrop-add">➕ ${addLabel}</div>`;
@@ -903,6 +920,23 @@ function renderBugTable() {
                         closeAllDropdowns();
                         renderBugTable();
                         refreshDeviceSummaryIfActive();
+                    });
+                });
+
+                menu.querySelectorAll('.cdrop-edit').forEach(ed => {
+                    ed.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const oldName = ed.dataset.dev;
+                        const newName = prompt(`Sửa tên "${oldName}" thành:`, oldName);
+                        if (!newName || !newName.trim() || newName.trim() === oldName) {
+                            closeAllDropdowns();
+                            return;
+                        }
+                        renameInList(isReporter ? 'reporter' : 'dev', oldName, newName.trim());
+                        toast(`Đã đổi "${oldName}" → "${newName.trim()}"`, 'success');
+                        closeAllDropdowns();
+                        renderBugTable();
+                        renderImprovements();
                     });
                 });
 
@@ -1462,12 +1496,12 @@ document.getElementById('btn-imp-cancel').addEventListener('click', closeImpModa
 document.getElementById('imp-modal-close').addEventListener('click', closeImpModal);
 
 function openImpModal(imp = null) {
-    document.getElementById('imp-modal-title').textContent = imp ? 'Chỉnh sửa cải tiến' : 'Đề xuất cải tiến';
+    document.getElementById('imp-modal-title').textContent = imp ? 'Chỉnh sửa hạng mục' : 'Thêm hạng mục';
     document.getElementById('imp-edit-id').value = imp ? imp.id : '';
     document.getElementById('imp-name').value = imp ? imp.name : '';
     document.getElementById('imp-desc').value = imp ? (imp.description || '') : '';
-    document.getElementById('imp-priority').value = imp ? imp.priority : 'Trung bình';
-    document.getElementById('imp-status').value = imp ? imp.status : 'Ý tưởng';
+    document.getElementById('imp-priority').value = (imp && normImpPriority(imp.priority)) || 'Cao';
+    document.getElementById('imp-status').value = imp ? normImpStatus(imp.status) : 'Mới';
     document.getElementById('imp-proposer').value = imp ? (imp.proposer || '') : '';
     // Populate assignee select
     const impAssignee = document.getElementById('imp-assignee');
@@ -1501,49 +1535,255 @@ document.getElementById('btn-imp-save').addEventListener('click', () => {
     renderImprovements();
 });
 
+// Map trạng thái cũ → 3 trạng thái mới
+function normImpStatus(s) {
+    if (s === 'Hoàn thành' || s === 'Đã xong') return 'Đã xong';
+    if (s === 'Đang làm') return 'Đang làm';
+    return 'Mới'; // Ý tưởng / Đã duyệt / fallback
+}
+
+// Map priority cũ → 2 mức (Trung bình → Cao)
+function normImpPriority(p) {
+    if (p === 'Thấp') return 'Thấp';
+    return 'Cao';
+}
+
 function renderImprovements() {
-    let imps = ImpDB.get();
+    let imps = ImpDB.get().map(i => ({ ...i, status: normImpStatus(i.status), priority: normImpPriority(i.priority) }));
     const search = document.getElementById('imp-search').value.toLowerCase();
     const fStatus = document.getElementById('imp-filter-status').value;
+    const fPriEl = document.getElementById('imp-filter-priority');
+    const fPriority = fPriEl ? fPriEl.value : 'all';
 
-    if (search) imps = imps.filter(i => i.name.toLowerCase().includes(search));
+    if (search) imps = imps.filter(i =>
+        i.name.toLowerCase().includes(search) ||
+        (i.description || '').toLowerCase().includes(search)
+    );
     if (fStatus !== 'all') imps = imps.filter(i => i.status === fStatus);
+    if (fPriority !== 'all') imps = imps.filter(i => i.priority === fPriority);
 
-    imps.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Sort cố định theo createdAt (cũ nhất lên đầu) — không sort theo status/priority
+    // → Đổi trạng thái/ưu tiên KHÔNG làm hàng nhảy vị trí
+    imps.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    const list = document.getElementById('imp-list');
+    const tbody = document.getElementById('imp-tbody');
     const empty = document.getElementById('imp-empty');
 
-    if (imps.length === 0) { list.innerHTML = ''; empty.hidden = false; return; }
+    if (imps.length === 0) { tbody.innerHTML = ''; empty.hidden = false; return; }
     empty.hidden = true;
 
-    const icons = { 'Ý tưởng': '💡', 'Đã duyệt': '✅', 'Đang làm': '🔄', 'Đã xử lí': '🎉' };
-    const priBadge = { 'Cao': 'badge-critical', 'Trung bình': 'badge-medium', 'Thấp': 'badge-low' };
-
-    list.innerHTML = imps.map(i => `
-        <div class="imp-card">
-            <div class="imp-icon">${icons[i.status] || '💡'}</div>
-            <div class="imp-info">
-                <div class="imp-title">${esc(i.name)}</div>
-                ${i.description ? `<div class="imp-desc">${esc(i.description)}</div>` : ''}
-                <div class="imp-meta">
-                    <span class="badge ${priBadge[i.priority] || ''}">${i.priority}</span>
-                    <span>${statusBadge(i.status)}</span>
-                    ${i.proposer ? `<span>👤 ${esc(i.proposer)}</span>` : ''}
-                    ${i.assignee ? `<span>🔧 ${esc(i.assignee)}</span>` : ''}
-                    <span>📅 ${fmtDate(i.createdAt)}</span>
+    tbody.innerHTML = imps.map((i, idx) => `
+        <tr>
+            <td class="check-col"><input type="checkbox" class="row-check-imp" data-id="${i.id}" ${Selection.imps.has(i.id)?'checked':''}></td>
+            <td class="bug-stt">${idx + 1}</td>
+            <td class="bug-name-cell" onclick="editImp('${i.id}')">
+                <div class="bug-name-text">${esc(i.name)}</div>
+                <div class="bug-name-tooltip">${esc(i.name)}</div>
+            </td>
+            <td class="bug-desc-cell"><div class="inline-editable" contenteditable="true" data-id="${i.id}" data-imp-field="description" data-placeholder="Nhập mô tả...">${esc(i.description || '')}</div></td>
+            <td>${fmtDate(i.createdAt)}</td>
+            <td class="reporter-cell">
+                <div class="cdrop" data-imp-id="${i.id}" data-imp-field="proposer" data-imp-list="reporter">
+                    <button class="cdrop-btn" type="button">${i.proposer ? esc(i.proposer) : ''} ▾</button>
                 </div>
-            </div>
-            <div class="imp-actions">
-                <button class="btn-icon" onclick="editImp('${i.id}')" title="Sửa">✏️</button>
-                <button class="btn-icon danger" onclick="deleteImp('${i.id}')" title="Xóa">🗑️</button>
-            </div>
-        </div>
+            </td>
+            <td class="assignee-cell">
+                <div class="cdrop" data-imp-id="${i.id}" data-imp-field="assignee" data-imp-list="dev">
+                    <button class="cdrop-btn" type="button">${i.assignee ? esc(i.assignee) : ''} ▾</button>
+                </div>
+            </td>
+            <td class="priority-cell">
+                <select class="inline-imp-priority" data-id="${i.id}" data-val="${esc(i.priority || 'Cao')}">
+                    <option value="Cao" ${i.priority==='Cao'?'selected':''}>🔴 Cao</option>
+                    <option value="Thấp" ${i.priority==='Thấp'?'selected':''}>🟢 Thấp</option>
+                </select>
+            </td>
+            <td class="status-cell">
+                <select class="inline-imp-status" data-id="${i.id}" data-color="${impStatusColor(i.status)}">
+                    <option value="Mới" ${i.status==='Mới'?'selected':''}>Mới</option>
+                    <option value="Đang làm" ${i.status==='Đang làm'?'selected':''}>Đang làm</option>
+                    <option value="Đã xong" ${i.status==='Đã xong'?'selected':''}>Đã xong</option>
+                </select>
+            </td>
+            <td class="completed-cell">${i.status === 'Đã xong' && i.completedDate
+                ? fmtDate(i.completedDate)
+                : '<span class="completed-empty">-</span>'}</td>
+            <td class="note-cell"><div class="inline-editable" contenteditable="true" data-id="${i.id}" data-imp-field="devNote" data-placeholder="Ghi chú...">${esc(i.devNote || '')}</div></td>
+            <td class="action-cell">
+                <div class="action-wrap">
+                    <button class="action-toggle" type="button" title="Tùy chọn">⚙️</button>
+                    <div class="action-menu">
+                        <div class="action-item" onclick="editImp('${i.id}')">✏️ Sửa</div>
+                        <div class="action-item action-danger" onclick="deleteImp('${i.id}')">🗑️ Xóa</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
     `).join('');
+
+    // Bind row checkbox (multi-select imp)
+    tbody.querySelectorAll('.row-check-imp').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (cb.checked) Selection.imps.add(cb.dataset.id);
+            else Selection.imps.delete(cb.dataset.id);
+            updateBulkBar('imps');
+        });
+    });
+
+    // Bind inline editable (description, devNote)
+    tbody.querySelectorAll('.inline-editable[data-imp-field]').forEach(el => {
+        el.addEventListener('blur', () => {
+            const id = el.dataset.id;
+            const field = el.dataset.impField;
+            const val = el.innerText.trim();
+            const imp = ImpDB.get().find(x => x.id === id);
+            if (imp && imp[field] !== val) ImpDB.update(id, { [field]: val });
+        });
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.blur(); }
+        });
+    });
+
+    // Bind inline priority change
+    tbody.querySelectorAll('.inline-imp-priority').forEach(sel => {
+        sel.addEventListener('change', () => {
+            sel.dataset.val = sel.value;
+            ImpDB.update(sel.dataset.id, { priority: sel.value });
+            toast(`Ưu tiên: ${sel.value}`, 'success');
+            renderImprovements();
+        });
+    });
+
+    // Bind inline status change — auto set/clear completedDate
+    tbody.querySelectorAll('.inline-imp-status').forEach(sel => {
+        sel.addEventListener('change', () => {
+            sel.dataset.color = impStatusColor(sel.value);
+            const updates = { status: sel.value };
+            if (sel.value === 'Đã xong') {
+                updates.completedDate = new Date().toISOString();
+            } else {
+                updates.completedDate = '';
+            }
+            ImpDB.update(sel.dataset.id, updates);
+            toast(`Đã chuyển sang "${sel.value}"`, 'success');
+            renderImprovements();
+        });
+    });
+
+    // Bind action menu toggle
+    tbody.querySelectorAll('.action-toggle').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            closeAllDropdowns();
+            const menu = btn.nextElementSibling;
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = (rect.bottom + 2) + 'px';
+            menu.style.right = (window.innerWidth - rect.right) + 'px';
+            menu.style.left = 'auto';
+            menu.classList.add('open');
+        });
+    });
+
+    // Bind cdrop cho người đề xuất + người xử lý
+    tbody.querySelectorAll('.cdrop[data-imp-id]').forEach(wrap => {
+        const impId = wrap.dataset.impId;
+        const field = wrap.dataset.impField; // 'proposer' | 'assignee'
+        const listKind = wrap.dataset.impList; // 'reporter' | 'dev'
+        const btn = wrap.querySelector('.cdrop-btn');
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            closeAllDropdowns();
+            const list = listKind === 'reporter' ? ReporterDB.getAll() : DevListDB.getAll();
+            const addLabel = listKind === 'reporter' ? 'Thêm người...' : 'Thêm dev...';
+            const menu = document.createElement('div');
+            menu.className = 'cdrop-menu';
+            menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Xóa tên</div>` +
+                list.map(d => `<div class="cdrop-item">
+                    <span class="cdrop-name" data-val="${esc(d)}">${esc(d)}</span>
+                    <span class="cdrop-edit" data-dev="${esc(d)}" title="Sửa tên">✏️</span>
+                    <span class="cdrop-x" data-dev="${esc(d)}" title="Xóa khỏi DS">✕</span>
+                </div>`).join('') +
+                `<div class="cdrop-item cdrop-add">➕ ${addLabel}</div>`;
+            const rect = btn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = (rect.bottom + 2) + 'px';
+            menu.style.left = rect.left + 'px';
+            document.body.appendChild(menu);
+
+            menu.querySelectorAll('.cdrop-name').forEach(n => {
+                n.addEventListener('click', () => {
+                    ImpDB.update(impId, { [field]: n.dataset.val });
+                    closeAllDropdowns();
+                    renderImprovements();
+                });
+            });
+            menu.querySelector('.cdrop-clear').addEventListener('click', () => {
+                ImpDB.update(impId, { [field]: '' });
+                closeAllDropdowns();
+                renderImprovements();
+            });
+            menu.querySelectorAll('.cdrop-x').forEach(x => {
+                x.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const name = x.dataset.dev;
+                    if (!confirm(`Xóa tên "${name}" khỏi danh sách?`)) return;
+                    if (listKind === 'reporter') ReporterDB.remove(name);
+                    else DevListDB.remove(name);
+                    // Clear references in bugs + imps
+                    if (listKind === 'reporter') {
+                        Cache.bugs.forEach(b => { if (b.reporter === name) BugDB.update(b.id, { reporter: '' }); });
+                        Cache.improvements.forEach(i => { if (i.proposer === name) ImpDB.update(i.id, { proposer: '' }); });
+                    } else {
+                        Cache.bugs.forEach(b => { if (b.assignee === name) BugDB.update(b.id, { assignee: '' }); });
+                        Cache.improvements.forEach(i => { if (i.assignee === name) ImpDB.update(i.id, { assignee: '' }); });
+                    }
+                    toast(`Đã xóa "${name}"!`, 'success');
+                    closeAllDropdowns();
+                    renderImprovements();
+                    renderBugTable();
+                });
+            });
+            menu.querySelectorAll('.cdrop-edit').forEach(ed => {
+                ed.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const oldName = ed.dataset.dev;
+                    const newName = prompt(`Sửa tên "${oldName}" thành:`, oldName);
+                    if (!newName || !newName.trim() || newName.trim() === oldName) {
+                        closeAllDropdowns();
+                        return;
+                    }
+                    renameInList(listKind, oldName, newName.trim());
+                    toast(`Đã đổi "${oldName}" → "${newName.trim()}"`, 'success');
+                    closeAllDropdowns();
+                    renderImprovements();
+                    renderBugTable();
+                });
+            });
+            menu.querySelector('.cdrop-add').addEventListener('click', () => {
+                const name = prompt(listKind === 'reporter' ? 'Nhập tên người mới:' : 'Nhập tên Dev mới:');
+                if (name && name.trim()) {
+                    if (listKind === 'reporter') ReporterDB.add(name.trim());
+                    else DevListDB.add(name.trim());
+                    ImpDB.update(impId, { [field]: name.trim() });
+                }
+                closeAllDropdowns();
+                renderImprovements();
+            });
+        });
+    });
+}
+
+function impStatusColor(s) {
+    if (s === 'Mới') return 'thongbao';
+    if (s === 'Đang làm') return 'dangxuly';
+    if (s === 'Đã xong') return 'hoanthanh';
+    return 'thongbao';
 }
 
 document.getElementById('imp-search').addEventListener('input', renderImprovements);
 document.getElementById('imp-filter-status').addEventListener('change', renderImprovements);
+document.getElementById('imp-filter-priority').addEventListener('change', renderImprovements);
 
 function editImp(id) {
     const imp = ImpDB.get().find(i => i.id === id);
@@ -1927,6 +2167,88 @@ function closeAllDropdowns() {
     document.querySelectorAll('.action-menu.open').forEach(m => m.classList.remove('open'));
 }
 document.addEventListener('click', closeAllDropdowns);
+
+// Đổi tên trong danh sách Dev/Reporter + cập nhật mọi bug/imp dùng tên cũ
+function renameInList(listKind, oldName, newName) {
+    if (listKind === 'reporter') {
+        ReporterDB.remove(oldName);
+        ReporterDB.add(newName);
+        Cache.bugs.forEach(b => { if (b.reporter === oldName) BugDB.update(b.id, { reporter: newName }); });
+        Cache.improvements.forEach(i => { if (i.proposer === oldName) ImpDB.update(i.id, { proposer: newName }); });
+    } else {
+        DevListDB.remove(oldName);
+        DevListDB.add(newName);
+        Cache.bugs.forEach(b => { if (b.assignee === oldName) BugDB.update(b.id, { assignee: newName }); });
+        Cache.improvements.forEach(i => { if (i.assignee === oldName) ImpDB.update(i.id, { assignee: newName }); });
+    }
+}
+
+// ===== MULTI-SELECT / BULK DELETE =====
+function updateBulkBar(kind) {
+    const set = Selection[kind];
+    const bar = document.getElementById(kind === 'bugs' ? 'bug-bulk-bar' : 'imp-bulk-bar');
+    const cnt = document.getElementById(kind === 'bugs' ? 'bug-bulk-count' : 'imp-bulk-count');
+    if (!bar || !cnt) return;
+    if (set.size === 0) { bar.hidden = true; }
+    else { bar.hidden = false; cnt.textContent = set.size; }
+    // Sync master check
+    const master = document.getElementById(kind === 'bugs' ? 'bug-check-all' : 'imp-check-all');
+    if (master) {
+        const rows = document.querySelectorAll(kind === 'bugs' ? '.row-check-bug' : '.row-check-imp');
+        const allChecked = rows.length > 0 && Array.from(rows).every(c => c.checked);
+        master.checked = allChecked;
+        master.indeterminate = !allChecked && set.size > 0;
+    }
+}
+
+// Master check toggle (chọn/bỏ tất cả hàng đang hiển thị)
+const bugCheckAll = document.getElementById('bug-check-all');
+if (bugCheckAll) bugCheckAll.addEventListener('change', () => {
+    const rows = document.querySelectorAll('.row-check-bug');
+    if (bugCheckAll.checked) rows.forEach(c => { c.checked = true; Selection.bugs.add(c.dataset.id); });
+    else { rows.forEach(c => c.checked = false); Selection.bugs.clear(); }
+    updateBulkBar('bugs');
+});
+const impCheckAll = document.getElementById('imp-check-all');
+if (impCheckAll) impCheckAll.addEventListener('change', () => {
+    const rows = document.querySelectorAll('.row-check-imp');
+    if (impCheckAll.checked) rows.forEach(c => { c.checked = true; Selection.imps.add(c.dataset.id); });
+    else { rows.forEach(c => c.checked = false); Selection.imps.clear(); }
+    updateBulkBar('imps');
+});
+
+// Bulk clear / delete
+document.getElementById('btn-bug-bulk-clear').addEventListener('click', () => {
+    Selection.bugs.clear();
+    document.querySelectorAll('.row-check-bug').forEach(c => c.checked = false);
+    updateBulkBar('bugs');
+});
+document.getElementById('btn-bug-bulk-delete').addEventListener('click', async () => {
+    const ids = Array.from(Selection.bugs);
+    if (ids.length === 0) return;
+    if (!confirm(`Xóa ${ids.length} lỗi đã chọn? Không thể hoàn tác.`)) return;
+    for (const id of ids) await BugDB.delete(id);
+    Selection.bugs.clear();
+    toast(`Đã xóa ${ids.length} lỗi`, 'success');
+    updateBulkBar('bugs');
+    renderBugTable();
+});
+
+document.getElementById('btn-imp-bulk-clear').addEventListener('click', () => {
+    Selection.imps.clear();
+    document.querySelectorAll('.row-check-imp').forEach(c => c.checked = false);
+    updateBulkBar('imps');
+});
+document.getElementById('btn-imp-bulk-delete').addEventListener('click', async () => {
+    const ids = Array.from(Selection.imps);
+    if (ids.length === 0) return;
+    if (!confirm(`Xóa ${ids.length} hạng mục đã chọn? Không thể hoàn tác.`)) return;
+    for (const id of ids) await ImpDB.delete(id);
+    Selection.imps.clear();
+    toast(`Đã xóa ${ids.length} hạng mục`, 'success');
+    updateBulkBar('imps');
+    renderImprovements();
+});
 
 // No-op stubs cho code legacy còn gọi tới (đã bỏ trang Tổng hợp thiết bị)
 function refreshDeviceSummaryIfActive() {}
