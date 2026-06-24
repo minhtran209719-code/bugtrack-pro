@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BugTrack Pro - Quản lý lỗi & Tiến độ sản phẩm</title>
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'&gt;&lt;text y='14' font-size='14'&gt;🐞&lt;/text&gt;&lt;/svg&gt;">
     <link rel="stylesheet" href="style.css?v=20260508h">
     <style>
         /* Seam #A: màn đăng nhập + ẩn nút theo quyền */
+        /* QUAN TRỌNG: display:flex bên dưới đè [hidden] mặc định → phải cho [hidden] thắng,
+           nếu không overlay login + form đăng ký KHÔNG BAO GIỜ ẩn (login xong vẫn kẹt màn login). */
+        .login-screen[hidden], .login-card[hidden] { display: none !important; }
         .login-screen { position: fixed; inset: 0; z-index: 9999; display: flex;
             align-items: center; justify-content: center;
             background: linear-gradient(135deg, #1e293b, #0f172a); }
@@ -518,6 +522,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-auth2"></script>
+    <script src="app.js?v=20260624-auth3"></script>
 </body>
 </html>

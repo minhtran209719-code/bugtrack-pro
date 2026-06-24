@@ -734,7 +734,7 @@ function renderBugTable() {
                     <button class="action-toggle" type="button" title="Tùy chọn">⚙️</button>
                     <div class="action-menu">
                         <div class="action-item" onclick="editBug('${b.id}')">✏️ Sửa</div>
-                        <div class="action-item action-danger" onclick="deleteBug('${b.id}')">🗑️ Xóa</div>
+                        <div class="action-item action-danger needs-delete" onclick="deleteBug('${b.id}')">🗑️ Xóa</div>
                     </div>
                 </div>
             </td>
