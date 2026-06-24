@@ -39,15 +39,38 @@
         .login-switch a { color: #6366f1; font-weight: 600; text-decoration: none; }
         .login-switch a:hover { text-decoration: underline; }
         .login-hint { text-align: center; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
-        /* Admin user panel */
-        #users-modal .u-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid #eee; flex-wrap: wrap; }
-        #users-modal .u-row.locked { opacity: .55; }
-        #users-modal select, #users-modal input { padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-        #users-modal .u-add { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
-        .role-pill { font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
-        .role-pill.admin { background: #fee2e2; color: #b91c1c; }
-        .role-pill.dev { background: #dbeafe; color: #1d4ed8; }
-        .role-pill.support { background: #dcfce7; color: #166534; }
+        /* Admin user panel — gọn, hiện đại */
+        #users-modal .u-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+        #users-modal .u-add input { flex: 1; min-width: 100px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+        #users-modal .u-add select { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #fff; }
+        #users-modal .u-add #nu-add { padding: 8px 14px; border: none; border-radius: 8px; background: #6366f1; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+        #users-modal .u-add #nu-add:hover { background: #4f46e5; }
+        #users-modal .u-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid #f1f5f9; }
+        #users-modal .u-row:hover { background: #f8fafc; }
+        #users-modal .u-row.locked { opacity: .5; }
+        .u-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+        .u-avatar.admin { background: #ef4444; } .u-avatar.dev { background: #3b82f6; } .u-avatar.support { background: #22c55e; }
+        .u-info { flex: 1; min-width: 0; }
+        .u-name { font-weight: 600; font-size: 14px; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+        .u-email { font-size: 12px; color: #94a3b8; }
+        .u-locktag { font-size: 10px; background: #fee2e2; color: #b91c1c; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+        #users-modal .u-role { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12.5px; background: #fff; cursor: pointer; }
+        .u-btn { width: 34px; height: 34px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer;
+            font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
+        .u-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .u-btn.u-lock.locked { background: #fef2f2; border-color: #fecaca; }
+        /* Thùng rác */
+        #trash-modal .trash-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid #f1f5f9; }
+        #trash-modal .trash-row:hover { background: #f8fafc; }
+        #trash-modal .tr-id { font-family: monospace; font-size: 11px; color: #64748b; background: #f1f5f9; padding: 3px 7px; border-radius: 6px; flex-shrink: 0; }
+        #trash-modal .tr-info { flex: 1; min-width: 0; }
+        #trash-modal .tr-name { font-weight: 600; font-size: 14px; color: #1e293b; }
+        #trash-modal .tr-meta { font-size: 12px; color: #94a3b8; }
+        #trash-modal .tr-restore { padding: 7px 13px; border: 1px solid #c7d2fe; border-radius: 8px; background: #eef2ff; color: #4f46e5; font-weight: 600; font-size: 12.5px; cursor: pointer; flex-shrink: 0; }
+        #trash-modal .tr-restore:hover { background: #e0e7ff; }
+        #trash-modal .tr-empty { padding: 28px; text-align: center; color: #94a3b8; }
         /* Modal xác nhận / thông báo trong app (thay confirm/alert native) */
         #confirm-modal, #notice-modal { z-index: 10000; }
         #confirm-modal .modal-content, #notice-modal .modal-content { max-width: 430px; }
@@ -537,6 +560,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-id1"></script>
+    <script src="app.js?v=20260624-id3"></script>
 </body>
 </html>

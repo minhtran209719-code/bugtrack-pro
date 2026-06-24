@@ -2362,11 +2362,14 @@ async function openTrash() {
     modal.querySelector('h3').textContent = `🗑️ Thùng rác (${items.length})`;
     const body = modal.querySelector('#trash-body');
     body.innerHTML = items.length ? items.map(b => `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eee">
-            <div><strong>${b.displayId}</strong> ${esc(b.name)}<br>
-            <small style="color:#888">Xoá bởi <b>${esc(userName(b.deletedBy) || '?')}</b> · ${b.deletedAt ? fmtDateTime(b.deletedAt) : ''} · SP: ${esc(b.product)}</small></div>
-            <button class="btn-small" data-restore="${b.id}">↩️ Khôi phục</button>
-        </div>`).join('') : '<p style="padding:16px;color:#888">Thùng rác trống</p>';
+        <div class="trash-row">
+            <span class="tr-id">${b.displayId}</span>
+            <div class="tr-info">
+                <div class="tr-name">${esc(b.name)}</div>
+                <div class="tr-meta">Xoá bởi <b>${esc(userName(b.deletedBy) || '?')}</b> · ${b.deletedAt ? fmtDateTime(b.deletedAt) : ''} · SP: ${esc(b.product)}</div>
+            </div>
+            <button class="tr-restore" data-restore="${b.id}">↩️ Khôi phục</button>
+        </div>`).join('') : '<div class="tr-empty">Thùng rác trống 🗑️</div>';
     body.querySelectorAll('[data-restore]').forEach(btn => {
         btn.addEventListener('click', async () => {
             try {
@@ -2419,17 +2422,22 @@ async function openUsers() {
         });
     }
     const body = modal.querySelector('#users-body');
-    body.innerHTML = items.map(u => `
+    body.innerHTML = items.map(u => {
+        const initials = (u.name || u.email || '?').trim().charAt(0).toUpperCase();
+        return `
         <div class="u-row ${u.active ? '' : 'locked'}">
-            <strong style="min-width:90px">${esc(u.name || u.email)}</strong>
-            <span style="color:#888;min-width:80px;font-size:12px">${esc(u.email)}</span>
-            <span class="role-pill ${esc(u.role)}">${esc(u.role)}</span>
-            <select class="u-role" data-id="${u.id}" title="Đổi vai">
+            <div class="u-avatar ${esc(u.role)}">${esc(initials)}</div>
+            <div class="u-info">
+                <div class="u-name">${esc(u.name || u.email)} ${u.active ? '' : '<span class="u-locktag">đã khoá</span>'}</div>
+                <div class="u-email">@${esc(u.email)}</div>
+            </div>
+            <select class="u-role" data-id="${u.id}" title="Đổi vai trò">
               ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
-            <button class="btn-small u-lock" data-id="${u.id}" data-active="${u.active}">${u.active ? '🔒 Khoá' : '🔓 Mở khoá'}</button>
-            <button class="btn-small u-reset" data-id="${u.id}">🔁 Reset MK</button>
-        </div>`).join('');
+            <button class="u-btn u-lock ${u.active ? '' : 'locked'}" data-id="${u.id}" data-active="${u.active}" title="${u.active ? 'Khoá tài khoản' : 'Mở khoá'}">${u.active ? '🔒' : '🔓'}</button>
+            <button class="u-btn u-reset" data-id="${u.id}" title="Reset mật khẩu">🔁</button>
+        </div>`;
+    }).join('');
     body.querySelectorAll('.u-role').forEach(sel => sel.addEventListener('change', async () => {
         try { await apiCall('PATCH', `/auth/users/${sel.dataset.id}`, { role: sel.value }); toast('Đã đổi vai trò', 'success'); openUsers(); }
         catch (e) { toast('Lỗi: ' + e.message, 'error'); openUsers(); }
