@@ -2408,27 +2408,10 @@ async function openUsers(flashId) {
         modal.innerHTML = `<div class="modal-content" style="max-width:700px">
             <div class="modal-header"><h3>👥 Quản lý người dùng</h3>
             <button class="modal-close" id="users-close">✕</button></div>
-            <div class="u-add">
-              <input id="nu-email" placeholder="tài khoản" style="width:120px">
-              <input id="nu-name" placeholder="Tên hiển thị" style="width:130px">
-              <select id="nu-role"><option value="support">support</option><option value="dev">dev</option><option value="admin">admin</option></select>
-              <button class="btn-small" id="nu-add">➕ Thêm user</button>
-            </div>
-            <div id="users-body" style="max-height:55vh;overflow:auto"></div></div>`;
+            <div class="u-hint">Người dùng tự đăng ký bằng mã đăng ký. Admin chỉnh vai trò, khoá/mở, đổi tên/username, reset mật khẩu tại đây.</div>
+            <div id="users-body" style="max-height:60vh;overflow:auto"></div></div>`;
         document.body.appendChild(modal);
         modal.querySelector('#users-close').addEventListener('click', () => { modal.hidden = true; });
-        modal.querySelector('#nu-add').addEventListener('click', async () => {
-            const email = modal.querySelector('#nu-email').value.trim();
-            const name = modal.querySelector('#nu-name').value.trim();
-            const role = modal.querySelector('#nu-role').value;
-            if (!email || !name) { toast('Nhập tài khoản + tên', 'error'); return; }
-            try {
-                const r = await apiCall('POST', '/auth/users', { email, name, role });
-                await uiNotice(`Đã tạo "${name}" (${role}).\nTài khoản: ${email}\nMật khẩu tạm — gửi cho người dùng, họ tự đổi sau:`, { title: '✅ Tạo tài khoản', copyText: r.tempPassword });
-                modal.querySelector('#nu-email').value = ''; modal.querySelector('#nu-name').value = '';
-                openUsers();
-            } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
-        });
     }
     const body = modal.querySelector('#users-body');
     body.innerHTML = items.map(u => {
@@ -2438,11 +2421,11 @@ async function openUsers(flashId) {
             <div class="u-avatar ${esc(u.role)}">${esc(initials)}</div>
             <div class="u-info u-view">
                 <div class="u-name">${esc(u.name || u.email)} ${u.active ? '' : '<span class="u-locktag">đã khoá</span>'} <span class="u-saved-badge">✓ Đã lưu</span></div>
-                <div class="u-email"><span class="u-fld-lbl">Tài khoản:</span> ${esc(u.email)}</div>
+                <div class="u-email"><span class="u-fld-lbl">Username:</span> ${esc(u.email)}</div>
             </div>
             <div class="u-edit-fields">
                 <div class="u-ef"><span class="u-ef-lbl">Tên</span><input class="u-edit-name" value="${esc(u.name || '')}" maxlength="40"></div>
-                <div class="u-ef"><span class="u-ef-lbl">Tài khoản</span><input class="u-edit-email" value="${esc(u.email || '')}" autocomplete="off" maxlength="40"></div>
+                <div class="u-ef"><span class="u-ef-lbl">Username</span><input class="u-edit-email" value="${esc(u.email || '')}" autocomplete="off" maxlength="40"></div>
             </div>
             <select class="u-role u-view-act" data-id="${u.id}" title="Đổi vai trò">
               ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
