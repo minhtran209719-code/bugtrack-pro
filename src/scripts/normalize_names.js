@@ -15,6 +15,7 @@ const APPLY = process.argv.includes('--apply');
 // Map tên ASCII (data cũ) → tên account có dấu (để tra id).
 const ASCII_TO_DISPLAY = {
     'Tung': 'Tùng', 'Hoang': 'Hoàng', 'Tien': 'Tiến', 'Thuy': 'Thùy', 'Thang': 'Thắng',
+    'Thăng': 'Thắng', // biến thể dấu sai (ă thay vì ắ) trong data thật
     // Quang giữ nguyên
 };
 
