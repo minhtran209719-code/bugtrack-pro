@@ -16,8 +16,24 @@ const Cache = {
     reporterList: [],
     bugTypes: [],
     activeProduct: '',
+    directory: [],        // [{id,name,role}] user accounts (seam #A) — assignee/reporter lưu theo id
+    userMap: {},          // id → {name, role} để resolve hiển thị
     lastSync: null,
 };
+
+// Resolve id người dùng → tên hiển thị. Lưu id, hiện tên.
+function setDirectory(items) {
+    Cache.directory = items || [];
+    Cache.userMap = {};
+    for (const u of Cache.directory) Cache.userMap[u.id] = { name: u.name, role: u.role };
+}
+function userName(id) {
+    if (!id) return '';
+    const u = Cache.userMap[id];
+    return u ? u.name : id;   // fallback: hiện id nếu account đã xoá
+}
+// Danh sách user cho dropdown assignee/reporter (mọi user, hoặc lọc theo vai nếu cần)
+function userOptions() { return Cache.directory.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')); }
 
 // Multi-select state cho bulk delete
 const Selection = {
@@ -140,10 +156,11 @@ function uiNotice(message, opts = {}) {
 // DataSync: load full + delta poll. Modal mở thì skip để không ghi đè input.
 const DataSync = {
     async loadAll() {
-        const [meta, bugs, imps] = await Promise.all([
+        const [meta, bugs, imps, dir] = await Promise.all([
             apiCall('GET', '/meta'),
             apiCall('GET', '/bugs?size=10000'),
             apiCall('GET', '/improvements?size=10000'),
+            apiCall('GET', '/auth/directory'),
         ]);
         Cache.products = meta.products || [];
         Cache.devList = meta.devList || [];
@@ -152,6 +169,7 @@ const DataSync = {
         Cache.activeProduct = meta.activeProduct || Cache.products[0] || '';
         Cache.bugs = bugs.items || [];
         Cache.improvements = imps.items || [];
+        setDirectory(dir.items || []);
         Cache.lastSync = new Date().toISOString();
     },
 
@@ -596,7 +614,7 @@ function renderDashboard() {
 function renderSupportTable(bugs) {
     const stats = {};
     bugs.forEach(b => {
-        const name = b.reporter || 'Chưa rõ';
+        const name = userName(b.reporter) || 'Chưa rõ';
         if (!stats[name]) stats[name] = { total: 0, done: 0, untested: 0, waiting: 0, tested: 0 };
         stats[name].total++;
         if (b.status === 'Đã xử lí') stats[name].done++;
@@ -635,7 +653,7 @@ function renderDevTable(bugs) {
     const stats = {};
     const now = Date.now();
     bugs.forEach(b => {
-        const name = b.assignee || 'Chưa nhận';
+        const name = userName(b.assignee) || 'Chưa nhận';
         if (!stats[name]) stats[name] = { total: 0, open: 0, done: 0, overdue: 0 };
         stats[name].total++;
         if (b.status === 'Đã xử lí') {
@@ -766,7 +784,7 @@ function renderBugTable() {
             <td>${foundTime}</td>
             <td class="reporter-cell">
                 <div class="cdrop" data-id="${b.id}" data-field="reporter">
-                    <button class="cdrop-btn" type="button">${b.reporter ? esc(b.reporter) : ''} ▾</button>
+                    <button class="cdrop-btn" type="button">${b.reporter ? esc(userName(b.reporter)) : ''} ▾</button>
                 </div>
             </td>
             <td class="testtt-cell">
@@ -779,7 +797,7 @@ function renderBugTable() {
             <td class="note-cell"><div class="inline-editable" contenteditable="true" data-id="${b.id}" data-field="supportNote" data-placeholder="Ghi chú...">${esc(b.supportNote || '')}</div></td>
             <td class="assignee-cell col-divider">
                 <div class="cdrop" data-id="${b.id}">
-                    <button class="cdrop-btn" type="button">${b.assignee ? esc(b.assignee) : ''} ▾</button>
+                    <button class="cdrop-btn" type="button">${b.assignee ? esc(userName(b.assignee)) : ''} ▾</button>
                 </div>
             </td>
             <td class="status-cell">${b.assignee
@@ -963,25 +981,17 @@ function renderBugTable() {
                     refreshDeviceSummaryIfActive();
                 });
             } else {
-                // Dev / Reporter lists (with add/remove)
-                const isReporter = field === 'reporter';
-                const listDB = isReporter ? ReporterDB : DevListDB;
-                const fieldKey = isReporter ? 'reporter' : 'assignee';
-                const addLabel = isReporter ? 'Thêm người...' : 'Thêm dev...';
-
-                menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Xóa tên</div>` +
-                    listDB.getAll().map(d => `<div class="cdrop-item">
-                        <span class="cdrop-name" data-val="${esc(d)}">${esc(d)}</span>
-                        <span class="cdrop-edit" data-dev="${esc(d)}" title="Sửa tên">✏️</span>
-                        <span class="cdrop-x" data-dev="${esc(d)}" title="Xóa khỏi DS">✕</span>
-                    </div>`).join('') +
-                    `<div class="cdrop-item cdrop-add">➕ ${addLabel}</div>`;
+                // Người xử lý (assignee) / Người TT (reporter) — chọn từ TÀI KHOẢN (lưu id, hiện tên)
+                const fieldKey = field === 'reporter' ? 'reporter' : 'assignee';
+                menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Bỏ chọn</div>` +
+                    userOptions().map(u => `<div class="cdrop-item">
+                        <span class="cdrop-name" data-val="${esc(u.id)}">${esc(u.name)} <small style="color:#94a3b8">(${esc(u.role)})</small></span>
+                    </div>`).join('');
 
                 const rect2 = btn.getBoundingClientRect();
                 menu.style.position = 'fixed';
                 menu.style.left = rect2.left + 'px';
                 document.body.appendChild(menu);
-                // Flip lên trên nếu không đủ chỗ phía dưới
                 const menuH = menu.offsetHeight;
                 const spaceBelow = window.innerHeight - rect2.bottom;
                 if (spaceBelow < menuH + 10 && rect2.top > menuH + 10) {
@@ -998,53 +1008,8 @@ function renderBugTable() {
                         refreshDeviceSummaryIfActive();
                     });
                 });
-
                 menu.querySelector('.cdrop-clear').addEventListener('click', () => {
                     BugDB.update(bugId, { [fieldKey]: '' });
-                    closeAllDropdowns();
-                    renderBugTable();
-                    refreshDeviceSummaryIfActive();
-                });
-
-                menu.querySelectorAll('.cdrop-x').forEach(x => {
-                    x.addEventListener('click', e => {
-                        e.stopPropagation();
-                        const name = x.dataset.dev;
-                        listDB.remove(name);
-                        BugDB.get().forEach(bug => {
-                            if (bug[fieldKey] === name) BugDB.update(bug.id, { [fieldKey]: '' });
-                        });
-                        toast(`Đã xóa "${name}"!`, 'success');
-                        closeAllDropdowns();
-                        renderBugTable();
-                        refreshDeviceSummaryIfActive();
-                    });
-                });
-
-                menu.querySelectorAll('.cdrop-edit').forEach(ed => {
-                    ed.addEventListener('click', e => {
-                        e.stopPropagation();
-                        const oldName = ed.dataset.dev;
-                        const newName = prompt(`Sửa tên "${oldName}" thành:`, oldName);
-                        if (!newName || !newName.trim() || newName.trim() === oldName) {
-                            closeAllDropdowns();
-                            return;
-                        }
-                        renameInList(isReporter ? 'reporter' : 'dev', oldName, newName.trim());
-                        toast(`Đã đổi "${oldName}" → "${newName.trim()}"`, 'success');
-                        closeAllDropdowns();
-                        renderBugTable();
-                        renderImprovements();
-                    });
-                });
-
-                menu.querySelector('.cdrop-add').addEventListener('click', () => {
-                    const name = prompt(`Nhập tên ${isReporter ? 'người thông tin' : 'Dev'} mới:`);
-                    if (name && name.trim()) {
-                        listDB.add(name.trim());
-                        BugDB.update(bugId, { [fieldKey]: name.trim() });
-                        toast(`Đã thêm "${name.trim()}"!`, 'success');
-                    }
                     closeAllDropdowns();
                     renderBugTable();
                     refreshDeviceSummaryIfActive();
@@ -1160,13 +1125,11 @@ function openBugModal(bug = null) {
     document.getElementById('bug-status').value = bug ? bug.status : 'Đang xử lí';
     document.getElementById('bug-assignee').value = bug ? (bug.assignee || '') : '';
 
-    // Populate reporter select
+    // Populate reporter select từ tài khoản (lưu id, hiện tên)
     const repSel = document.getElementById('bug-reporter-select');
-    const reporters = ReporterDB.getAll();
     const currentRep = bug ? (bug.reporter || '') : '';
     repSel.innerHTML = `<option value="">-- Chọn --</option>` +
-        reporters.map(r => `<option value="${esc(r)}" ${currentRep===r?'selected':''}>${esc(r)}</option>`).join('') +
-        `<option value="__add">➕ Thêm người mới...</option>`;
+        userOptions().map(u => `<option value="${esc(u.id)}" ${currentRep===u.id?'selected':''}>${esc(u.name)} (${esc(u.role)})</option>`).join('');
     document.getElementById('bug-deadline').value = bug ? (bug.deadline || '') : '';
     document.getElementById('bug-note').value = bug ? (bug.devNote || '') : '';
 
@@ -1457,13 +1420,13 @@ async function showDetail(id) {
         </div>
 
         <div class="dt-meta">
-            <span class="dt-meta-item">👤 TT: <strong>${esc(b.reporter || 'Chưa rõ')}</strong></span>
-            <span class="dt-meta-item">🛠️ Xử lý: <strong>${esc(b.assignee || 'Chưa nhận')}</strong></span>
+            <span class="dt-meta-item">👤 TT: <strong>${esc(userName(b.reporter) || 'Chưa rõ')}</strong></span>
+            <span class="dt-meta-item">🛠️ Xử lý: <strong>${esc(userName(b.assignee) || 'Chưa nhận')}</strong></span>
             <span class="dt-meta-item">📅 Ngày TT: <strong>${b.foundDate ? fmtDate(b.foundDate) : fmtDate(b.createdAt)}</strong></span>
             ${completedHtml}
-            ${b.createdBy ? `<span class="dt-meta-item">🆕 Tạo bởi: <strong>${esc(b.createdBy)}</strong></span>` : ''}
-            ${b.assignedBy ? `<span class="dt-meta-item">🤝 Nhận bởi: <strong>${esc(b.assignedBy)}</strong>${b.assignedAt ? ' · ' + fmtDate(b.assignedAt) : ''}</span>` : ''}
-            ${b.deletedBy ? `<span class="dt-meta-item" style="color:#dc2626">🗑️ Xoá bởi: <strong>${esc(b.deletedBy)}</strong></span>` : ''}
+            ${b.createdBy ? `<span class="dt-meta-item">🆕 Tạo bởi: <strong>${esc(userName(b.createdBy))}</strong></span>` : ''}
+            ${b.assignedBy ? `<span class="dt-meta-item">🤝 Nhận bởi: <strong>${esc(userName(b.assignedBy))}</strong>${b.assignedAt ? ' · ' + fmtDate(b.assignedAt) : ''}</span>` : ''}
+            ${b.deletedBy ? `<span class="dt-meta-item" style="color:#dc2626">🗑️ Xoá bởi: <strong>${esc(userName(b.deletedBy))}</strong></span>` : ''}
         </div>
 
         ${supportNoteHtml}
@@ -1548,7 +1511,7 @@ function renderKanban() {
             return `<div class="kanban-card sev-${b.severity.toLowerCase()}" draggable="true" data-id="${b.id}" onclick="showDetail('${b.id}')" style="cursor:pointer">
                 <div class="kc-top">
                     <div class="kc-title">${esc(b.name)}</div>
-                    ${b.assignee ? `<span class="kc-assignee">${esc(b.assignee)}</span>` : ''}
+                    ${b.assignee ? `<span class="kc-assignee">${esc(userName(b.assignee))}</span>` : ''}
                 </div>
                 <div class="kc-meta">
                     <span>${severityBadge(b.severity)}</span>
@@ -1603,13 +1566,11 @@ function openImpModal(imp = null) {
     document.getElementById('imp-desc').value = imp ? (imp.description || '') : '';
     document.getElementById('imp-priority').value = (imp && normImpPriority(imp.priority)) || 'Cao';
     document.getElementById('imp-status').value = imp ? normImpStatus(imp.status) : 'Mới';
-    document.getElementById('imp-proposer').value = imp ? (imp.proposer || '') : '';
-    // Populate assignee select
-    const impAssignee = document.getElementById('imp-assignee');
-    const devs = DevListDB.getAll();
-    const currentAssignee = imp ? (imp.assignee || '') : '';
-    impAssignee.innerHTML = `<option value="">-- Chọn --</option>` +
-        devs.map(d => `<option value="${esc(d)}" ${currentAssignee===d?'selected':''}>${esc(d)}</option>`).join('');
+    // Populate proposer + assignee select từ tài khoản (lưu id, hiện tên)
+    const optsHtml = (cur) => `<option value="">-- Chọn --</option>` +
+        userOptions().map(u => `<option value="${esc(u.id)}" ${cur===u.id?'selected':''}>${esc(u.name)} (${esc(u.role)})</option>`).join('');
+    document.getElementById('imp-proposer').innerHTML = optsHtml(imp ? (imp.proposer || '') : '');
+    document.getElementById('imp-assignee').innerHTML = optsHtml(imp ? (imp.assignee || '') : '');
     document.getElementById('imp-modal').hidden = false;
 }
 
@@ -1685,12 +1646,12 @@ function renderImprovements() {
             <td>${fmtDate(i.createdAt)}</td>
             <td class="reporter-cell">
                 <div class="cdrop" data-imp-id="${i.id}" data-imp-field="proposer" data-imp-list="reporter">
-                    <button class="cdrop-btn" type="button">${i.proposer ? esc(i.proposer) : ''} ▾</button>
+                    <button class="cdrop-btn" type="button">${i.proposer ? esc(userName(i.proposer)) : ''} ▾</button>
                 </div>
             </td>
             <td class="assignee-cell">
                 <div class="cdrop" data-imp-id="${i.id}" data-imp-field="assignee" data-imp-list="dev">
-                    <button class="cdrop-btn" type="button">${i.assignee ? esc(i.assignee) : ''} ▾</button>
+                    <button class="cdrop-btn" type="button">${i.assignee ? esc(userName(i.assignee)) : ''} ▾</button>
                 </div>
             </td>
             <td class="priority-cell">
@@ -1795,17 +1756,12 @@ function renderImprovements() {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             closeAllDropdowns();
-            const list = listKind === 'reporter' ? ReporterDB.getAll() : DevListDB.getAll();
-            const addLabel = listKind === 'reporter' ? 'Thêm người...' : 'Thêm dev...';
             const menu = document.createElement('div');
             menu.className = 'cdrop-menu';
-            menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Xóa tên</div>` +
-                list.map(d => `<div class="cdrop-item">
-                    <span class="cdrop-name" data-val="${esc(d)}">${esc(d)}</span>
-                    <span class="cdrop-edit" data-dev="${esc(d)}" title="Sửa tên">✏️</span>
-                    <span class="cdrop-x" data-dev="${esc(d)}" title="Xóa khỏi DS">✕</span>
-                </div>`).join('') +
-                `<div class="cdrop-item cdrop-add">➕ ${addLabel}</div>`;
+            menu.innerHTML = `<div class="cdrop-item cdrop-clear" data-val="">🗑️ Bỏ chọn</div>` +
+                userOptions().map(u => `<div class="cdrop-item">
+                    <span class="cdrop-name" data-val="${esc(u.id)}">${esc(u.name)} <small style="color:#94a3b8">(${esc(u.role)})</small></span>
+                </div>`).join('');
             const rect = btn.getBoundingClientRect();
             menu.style.position = 'fixed';
             menu.style.top = (rect.bottom + 2) + 'px';
@@ -1821,53 +1777,6 @@ function renderImprovements() {
             });
             menu.querySelector('.cdrop-clear').addEventListener('click', () => {
                 ImpDB.update(impId, { [field]: '' });
-                closeAllDropdowns();
-                renderImprovements();
-            });
-            menu.querySelectorAll('.cdrop-x').forEach(x => {
-                x.addEventListener('click', async e => {
-                    e.stopPropagation();
-                    const name = x.dataset.dev;
-                    if (!await uiConfirm(`Xoá tên "${name}" khỏi danh sách?`, { title: 'Xoá khỏi danh sách', okText: 'Xoá', danger: true })) return;
-                    if (listKind === 'reporter') ReporterDB.remove(name);
-                    else DevListDB.remove(name);
-                    // Clear references in bugs + imps
-                    if (listKind === 'reporter') {
-                        Cache.bugs.forEach(b => { if (b.reporter === name) BugDB.update(b.id, { reporter: '' }); });
-                        Cache.improvements.forEach(i => { if (i.proposer === name) ImpDB.update(i.id, { proposer: '' }); });
-                    } else {
-                        Cache.bugs.forEach(b => { if (b.assignee === name) BugDB.update(b.id, { assignee: '' }); });
-                        Cache.improvements.forEach(i => { if (i.assignee === name) ImpDB.update(i.id, { assignee: '' }); });
-                    }
-                    toast(`Đã xóa "${name}"!`, 'success');
-                    closeAllDropdowns();
-                    renderImprovements();
-                    renderBugTable();
-                });
-            });
-            menu.querySelectorAll('.cdrop-edit').forEach(ed => {
-                ed.addEventListener('click', e => {
-                    e.stopPropagation();
-                    const oldName = ed.dataset.dev;
-                    const newName = prompt(`Sửa tên "${oldName}" thành:`, oldName);
-                    if (!newName || !newName.trim() || newName.trim() === oldName) {
-                        closeAllDropdowns();
-                        return;
-                    }
-                    renameInList(listKind, oldName, newName.trim());
-                    toast(`Đã đổi "${oldName}" → "${newName.trim()}"`, 'success');
-                    closeAllDropdowns();
-                    renderImprovements();
-                    renderBugTable();
-                });
-            });
-            menu.querySelector('.cdrop-add').addEventListener('click', () => {
-                const name = prompt(listKind === 'reporter' ? 'Nhập tên người mới:' : 'Nhập tên Dev mới:');
-                if (name && name.trim()) {
-                    if (listKind === 'reporter') ReporterDB.add(name.trim());
-                    else DevListDB.add(name.trim());
-                    ImpDB.update(impId, { [field]: name.trim() });
-                }
                 closeAllDropdowns();
                 renderImprovements();
             });
@@ -1929,7 +1838,7 @@ function renderAlerts() {
             <div class="alert-icon">🔴</div>
             <div class="alert-info">
                 <div class="alert-title">${b.displayId || b.id} - ${esc(b.name)}</div>
-                <div class="alert-desc">${severityBadge(b.severity)} · ${statusBadge(b.status)} · Dev: ${esc(b.assignee || 'Chưa phân công')}</div>
+                <div class="alert-desc">${severityBadge(b.severity)} · ${statusBadge(b.status)} · Dev: ${esc(userName(b.assignee) || 'Chưa phân công')}</div>
             </div>
             <div class="alert-time">Đã ${ageLabel}</div>
             <button class="btn-icon" onclick="editBug('${b.id}')" title="Xử lý">⚡</button>
@@ -2455,7 +2364,7 @@ async function openTrash() {
     body.innerHTML = items.length ? items.map(b => `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eee">
             <div><strong>${b.displayId}</strong> ${esc(b.name)}<br>
-            <small style="color:#888">Xoá bởi <b>${esc(b.deletedBy || '?')}</b> · ${b.deletedAt ? fmtDateTime(b.deletedAt) : ''} · SP: ${esc(b.product)}</small></div>
+            <small style="color:#888">Xoá bởi <b>${esc(userName(b.deletedBy) || '?')}</b> · ${b.deletedAt ? fmtDateTime(b.deletedAt) : ''} · SP: ${esc(b.product)}</small></div>
             <button class="btn-small" data-restore="${b.id}">↩️ Khôi phục</button>
         </div>`).join('') : '<p style="padding:16px;color:#888">Thùng rác trống</p>';
     body.querySelectorAll('[data-restore]').forEach(btn => {
