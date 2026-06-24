@@ -2387,15 +2387,32 @@ async function openTrash() {
 
 (async function init() {
     Auth.load();
+    // Con mắt hiện/ẩn mật khẩu
+    const pwToggle = document.getElementById('login-pw-toggle');
+    if (pwToggle) pwToggle.addEventListener('click', () => {
+        const inp = document.getElementById('login-password');
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        pwToggle.classList.toggle('on', show);
+        inp.focus();
+    });
+
     const form = document.getElementById('login-form');
     if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value;
         const errEl = document.getElementById('login-error');
+        const btn = document.getElementById('login-submit');
         if (errEl) errEl.textContent = '';
-        try { await doLogin(email, pass); }
-        catch (err) { if (errEl) errEl.textContent = err.message; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang đăng nhập…'; }
+        try {
+            await doLogin(email, pass);   // thành công → hideLogin + startApp (chuyển vào app)
+        } catch (err) {
+            if (errEl) errEl.textContent = err.message || 'Đăng nhập thất bại';
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Đăng nhập'; }
+        }
     });
     const lo = document.getElementById('btn-logout');
     if (lo) lo.addEventListener('click', logout);

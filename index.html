@@ -20,7 +20,16 @@
         .login-card input:focus { outline: none; border-color: #6366f1; }
         .login-card .btn-primary { margin-top: 14px; padding: 11px; border: none; border-radius: 8px;
             background: #6366f1; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .login-card .btn-primary { transition: background .15s, transform .08s; }
         .login-card .btn-primary:hover { background: #4f46e5; }
+        .login-card .btn-primary:active { transform: scale(.97); }
+        .login-card .btn-primary:disabled { opacity: .65; cursor: wait; }
+        .pw-wrap { position: relative; display: flex; align-items: center; }
+        .pw-wrap input { flex: 1; padding-right: 40px; width: 100%; box-sizing: border-box; }
+        .pw-toggle { position: absolute; right: 4px; background: none; border: none; cursor: pointer;
+            font-size: 16px; opacity: .55; padding: 6px; line-height: 1; }
+        .pw-toggle:hover { opacity: 1; }
+        .pw-toggle.on { opacity: 1; filter: drop-shadow(0 0 1px #6366f1); }
         .login-error { color: #dc2626; font-size: 13px; min-height: 18px; text-align: center; }
         .user-box { display: flex; align-items: center; gap: 6px; justify-content: space-between;
             font-size: 12px; color: #cbd5e1; padding: 6px 4px; }
@@ -38,9 +47,12 @@
             <label for="login-email">Tài khoản</label>
             <input id="login-email" name="username" type="text" autocomplete="username" required autofocus>
             <label for="login-password">Mật khẩu</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+            <div class="pw-wrap">
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+                <button type="button" id="login-pw-toggle" class="pw-toggle" tabindex="-1" title="Hiện/ẩn mật khẩu">👁️</button>
+            </div>
             <div id="login-error" class="login-error"></div>
-            <button type="submit" class="btn-primary">Đăng nhập</button>
+            <button type="submit" id="login-submit" class="btn-primary">Đăng nhập</button>
         </form>
     </div>
 
@@ -471,6 +483,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260508h"></script>
+    <script src="app.js?v=20260624-auth"></script>
 </body>
 </html>
