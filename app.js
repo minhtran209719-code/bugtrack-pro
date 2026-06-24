@@ -2434,6 +2434,7 @@ async function openUsers() {
             <select class="u-role" data-id="${u.id}" title="Đổi vai trò">
               ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
+            <button class="u-btn u-edit" data-id="${u.id}" title="Sửa tên & tài khoản">✏️</button>
             <button class="u-btn u-lock ${u.active ? '' : 'locked'}" data-id="${u.id}" data-active="${u.active}" title="${u.active ? 'Khoá tài khoản' : 'Mở khoá'}">${u.active ? '🔒' : '🔓'}</button>
             <button class="u-btn u-reset" data-id="${u.id}" title="Reset mật khẩu">🔁</button>
         </div>`;
@@ -2452,7 +2453,54 @@ async function openUsers() {
         try { const r = await apiCall('POST', `/auth/users/${btn.dataset.id}/reset-password`); await uiNotice('Mật khẩu tạm mới — gửi cho người dùng:', { title: '🔁 Đã reset mật khẩu', copyText: r.tempPassword }); }
         catch (e) { toast('Lỗi: ' + e.message, 'error'); }
     }));
+    body.querySelectorAll('.u-edit').forEach(btn => btn.addEventListener('click', async () => {
+        const u = items.find(x => x.id === btn.dataset.id);
+        if (!u) return;
+        const res = await uiEditUser(u);
+        if (!res) return;
+        try {
+            await apiCall('PATCH', `/auth/users/${u.id}`, { name: res.name, email: res.email });
+            toast('Đã cập nhật người dùng', 'success');
+            openUsers();
+        } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+    }));
     modal.hidden = false;
+}
+
+// Modal sửa tên + tài khoản (username) của user. Resolve {name,email} hoặc null nếu huỷ.
+function uiEditUser(cur) {
+    return new Promise(resolve => {
+        let m = document.getElementById('edituser-modal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'edituser-modal'; m.className = 'modal';
+            m.innerHTML = `<div class="modal-content" style="max-width:400px">
+                <div class="modal-header"><h3>✏️ Sửa người dùng</h3><button class="modal-close" id="eu-x">✕</button></div>
+                <label class="eu-label">Tên hiển thị</label>
+                <input id="eu-name" class="eu-input" type="text">
+                <label class="eu-label">Tài khoản đăng nhập</label>
+                <input id="eu-email" class="eu-input" type="text" autocomplete="off">
+                <div id="eu-err" class="login-error"></div>
+                <div class="ui-btns"><button class="ui-cancel" id="eu-cancel">Huỷ</button><button class="ui-ok" id="eu-save">Lưu</button></div>
+            </div>`;
+            document.body.appendChild(m);
+        }
+        const nameI = m.querySelector('#eu-name'), emailI = m.querySelector('#eu-email');
+        const err = m.querySelector('#eu-err');
+        nameI.value = cur.name || ''; emailI.value = cur.email || ''; err.textContent = '';
+        const save = m.querySelector('#eu-save'), cancel = m.querySelector('#eu-cancel'), x = m.querySelector('#eu-x');
+        const done = (v) => { m.hidden = true; save.onclick = cancel.onclick = x.onclick = null; resolve(v); };
+        save.onclick = () => {
+            const name = nameI.value.trim(), email = emailI.value.trim().toLowerCase();
+            if (!name) { err.textContent = 'Tên không được rỗng'; return; }
+            if (!/^[^\s@]{2,40}(@[^\s@]+\.[^\s@]+)?$/.test(email)) { err.textContent = 'Tài khoản không hợp lệ (2-40 ký tự, không dấu cách)'; return; }
+            done({ name, email });
+        };
+        cancel.onclick = () => done(null);
+        x.onclick = () => done(null);
+        m.hidden = false;
+        nameI.focus();
+    });
 }
 
 (async function init() {

@@ -90,4 +90,18 @@ function setActive(workspaceId, id, active) {
     return r.changes > 0;
 }
 
-module.exports = { toPublic, getByEmail, getById, list, directory, nameMap, create, setPassword, setRole, setActive, count, ROLES };
+function setName(workspaceId, id, name) {
+    const db = open();
+    const r = db.prepare('UPDATE users SET name = ?, updated_at = ? WHERE workspace_id = ? AND id = ?')
+        .run(String(name).trim(), new Date().toISOString(), workspaceId, id);
+    return r.changes > 0;
+}
+
+function setEmail(workspaceId, id, email) {
+    const db = open();
+    const r = db.prepare('UPDATE users SET email = ?, updated_at = ? WHERE workspace_id = ? AND id = ?')
+        .run(String(email).trim().toLowerCase(), new Date().toISOString(), workspaceId, id);
+    return r.changes > 0;
+}
+
+module.exports = { toPublic, getByEmail, getById, list, directory, nameMap, create, setPassword, setRole, setActive, setName, setEmail, count, ROLES };

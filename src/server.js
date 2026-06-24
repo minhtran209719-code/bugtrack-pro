@@ -264,6 +264,17 @@ route('PATCH', new RegExp(`^${API}/auth/users/([\\w-]+)$`), async (req, res, ctx
         return sendJSON(res, { error: 'Vai trò không hợp lệ' }, 400);
     }
     if (body.active !== undefined) db.users.setActive(ws, id, body.active);
+    if (body.name !== undefined) {
+        if (!String(body.name).trim()) return sendJSON(res, { error: 'Tên không được rỗng' }, 400);
+        db.users.setName(ws, id, body.name);
+    }
+    if (body.email !== undefined) {
+        const email = String(body.email).trim().toLowerCase();
+        if (!EMAIL_RE.test(email)) return sendJSON(res, { error: 'Tài khoản không hợp lệ' }, 400);
+        const taken = db.users.getByEmail(ws, email);
+        if (taken && taken.id !== id) return sendJSON(res, { error: 'Tài khoản đã có người dùng' }, 409);
+        db.users.setEmail(ws, id, email);
+    }
     db.auditLog.write({ workspaceId: ws, userId: ctx.userId, action: 'user.update', resourceType: 'user', resourceId: id, payload: body });
     sendJSON(res, db.users.toPublic(db.users.getById(ws, id)));
 });
