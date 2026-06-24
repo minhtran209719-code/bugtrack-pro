@@ -25,6 +25,27 @@ const Selection = {
     imps: new Set(),
 };
 
+// ===== Auth (seam #A) =====
+const Auth = {
+    token: localStorage.getItem('bt_token') || null,
+    user: null, // { id, name, role }
+    load() {
+        try { this.user = JSON.parse(localStorage.getItem('bt_user') || 'null'); } catch { this.user = null; }
+    },
+    set(token, user) {
+        this.token = token; this.user = user;
+        localStorage.setItem('bt_token', token);
+        localStorage.setItem('bt_user', JSON.stringify(user));
+    },
+    clear() {
+        this.token = null; this.user = null;
+        localStorage.removeItem('bt_token'); localStorage.removeItem('bt_user');
+    },
+    is(...roles) { return !!this.user && roles.includes(this.user.role); },
+    canDelete() { return this.is('dev', 'admin'); },         // xoá/khôi phục bug
+    canDeleteProduct() { return this.is('admin'); },         // xoá sản phẩm
+};
+
 async function apiCall(method, path, body, opts = {}) {
     const headers = {};
     let payload;
@@ -35,8 +56,14 @@ async function apiCall(method, path, body, opts = {}) {
         headers['Content-Type'] = 'application/json';
         payload = JSON.stringify(body);
     }
+    if (Auth.token) headers['Authorization'] = 'Bearer ' + Auth.token;
     const res = await fetch(API + path, { method, headers, body: payload });
     if (!res.ok) {
+        // Token hết hạn / không hợp lệ → về màn đăng nhập (trừ chính request login)
+        if (res.status === 401 && path !== '/auth/login') {
+            Auth.clear();
+            if (typeof showLogin === 'function') showLogin();
+        }
         let err;
         try { err = (await res.json()).error; } catch { err = `HTTP ${res.status}`; }
         throw new Error(err);
@@ -72,13 +99,18 @@ const DataSync = {
         let changed = false;
         for (const b of (bugDelta.items || [])) {
             const i = Cache.bugs.findIndex(x => x.id === b.id);
-            if (i >= 0) Cache.bugs[i] = b; else Cache.bugs.unshift(b);
-            changed = true;
+            if (b.deletedAt) {
+                // Bị xoá mềm ở máy khác → gỡ khỏi cache
+                if (i >= 0) { Cache.bugs.splice(i, 1); changed = true; }
+            } else if (i >= 0) { Cache.bugs[i] = b; changed = true; }
+            else { Cache.bugs.unshift(b); changed = true; }
         }
         for (const im of (impDelta.items || [])) {
             const i = Cache.improvements.findIndex(x => x.id === im.id);
-            if (i >= 0) Cache.improvements[i] = im; else Cache.improvements.unshift(im);
-            changed = true;
+            if (im.deletedAt) {
+                if (i >= 0) { Cache.improvements.splice(i, 1); changed = true; }
+            } else if (i >= 0) { Cache.improvements[i] = im; changed = true; }
+            else { Cache.improvements.unshift(im); changed = true; }
         }
         Cache.lastSync = bugDelta.now || new Date().toISOString();
         return changed;
@@ -1363,6 +1395,9 @@ async function showDetail(id) {
             <span class="dt-meta-item">🛠️ Xử lý: <strong>${esc(b.assignee || 'Chưa nhận')}</strong></span>
             <span class="dt-meta-item">📅 Ngày TT: <strong>${b.foundDate ? fmtDate(b.foundDate) : fmtDate(b.createdAt)}</strong></span>
             ${completedHtml}
+            ${b.createdBy ? `<span class="dt-meta-item">🆕 Tạo bởi: <strong>${esc(b.createdBy)}</strong></span>` : ''}
+            ${b.assignedBy ? `<span class="dt-meta-item">🤝 Nhận bởi: <strong>${esc(b.assignedBy)}</strong>${b.assignedAt ? ' · ' + fmtDate(b.assignedAt) : ''}</span>` : ''}
+            ${b.deletedBy ? `<span class="dt-meta-item" style="color:#dc2626">🗑️ Xoá bởi: <strong>${esc(b.deletedBy)}</strong></span>` : ''}
         </div>
 
         ${supportNoteHtml}
@@ -2254,7 +2289,30 @@ document.getElementById('btn-imp-bulk-delete').addEventListener('click', async (
 function refreshDeviceSummaryIfActive() {}
 function renderDeviceSummary() {}
 
-(async function init() {
+// ===== Login flow (seam #A) =====
+function showLogin() {
+    const el = document.getElementById('login-screen'); if (el) el.hidden = false;
+    const app = document.getElementById('app'); if (app) app.style.display = 'none';
+}
+function hideLogin() {
+    const el = document.getElementById('login-screen'); if (el) el.hidden = true;
+    const app = document.getElementById('app'); if (app) app.style.display = '';
+}
+function applyRoleUI() {
+    const who = document.getElementById('current-user');
+    if (who && Auth.user) who.textContent = `${Auth.user.name} · ${Auth.user.role}`;
+    document.body.classList.toggle('role-support', Auth.is('support'));
+    document.body.classList.toggle('role-dev', Auth.is('dev'));
+    document.body.classList.toggle('role-admin', Auth.is('admin'));
+    // Footgun: chỉ admin thấy nút xoá sản phẩm
+    const delProd = document.getElementById('btn-del-product');
+    if (delProd) delProd.style.display = Auth.canDeleteProduct() ? '' : 'none';
+    // Thùng rác: chỉ dev/admin
+    const trash = document.getElementById('btn-trash');
+    if (trash) trash.style.display = Auth.canDelete() ? '' : 'none';
+}
+
+async function startApp() {
     try {
         await DataSync.loadAll();
     } catch (e) {
@@ -2262,12 +2320,10 @@ function renderDeviceSummary() {}
         console.error('Initial load failed:', e);
         return;
     }
-
-    // Đảm bảo activeProduct hợp lệ
     if (!Cache.products.includes(Cache.activeProduct)) {
         ProductDB.setActive(Cache.products[0] || 'GemCloudPhone');
     }
-
+    applyRoleUI();
     renderProductSelect();
     renderDevDatalist();
     populateTypeFilter();
@@ -2276,7 +2332,82 @@ function renderDeviceSummary() {}
     renderBugTable();
     renderImprovements();
     renderAlerts();
-
     DataSync.startAutoRefresh(10000);
-    console.log('[INIT] Active:', ProductDB.getActive(), '| Bugs:', Cache.bugs.length, '| Improvements:', Cache.improvements.length);
+    console.log('[INIT] User:', Auth.user && Auth.user.name, '| Bugs:', Cache.bugs.length, '| Imps:', Cache.improvements.length);
+}
+
+async function doLogin(email, pass) {
+    const r = await apiCall('POST', '/auth/login', { email, password: pass });
+    Auth.set(r.token, r.user);
+    hideLogin();
+    await startApp();
+}
+function logout() { Auth.clear(); location.reload(); }
+
+// ===== Thùng rác (khôi phục bug xoá mềm) — dev/admin =====
+async function openTrash() {
+    if (!Auth.canDelete()) { toast('Chỉ Dev/Admin xem được thùng rác', 'error'); return; }
+    let data;
+    try { data = await apiCall('GET', '/bugs?deleted=only&size=500'); }
+    catch (e) { toast('Lỗi tải thùng rác: ' + e.message, 'error'); return; }
+    const items = data.items || [];
+    let modal = document.getElementById('trash-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'trash-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-content" style="max-width:640px">
+            <div class="modal-header"><h3></h3>
+            <button class="modal-close" id="trash-close">✕</button></div>
+            <div id="trash-body" style="max-height:60vh;overflow:auto;padding:8px 4px"></div></div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#trash-close').addEventListener('click', () => { modal.hidden = true; });
+    }
+    modal.querySelector('h3').textContent = `🗑️ Thùng rác (${items.length})`;
+    const body = modal.querySelector('#trash-body');
+    body.innerHTML = items.length ? items.map(b => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eee">
+            <div><strong>${b.displayId}</strong> ${esc(b.name)}<br>
+            <small style="color:#888">Xoá bởi <b>${esc(b.deletedBy || '?')}</b> · ${b.deletedAt ? fmtDateTime(b.deletedAt) : ''} · SP: ${esc(b.product)}</small></div>
+            <button class="btn-small" data-restore="${b.id}">↩️ Khôi phục</button>
+        </div>`).join('') : '<p style="padding:16px;color:#888">Thùng rác trống</p>';
+    body.querySelectorAll('[data-restore]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            try {
+                await apiCall('POST', `/bugs/${btn.dataset.restore}/restore`);
+                toast('Đã khôi phục lỗi', 'success');
+                await DataSync.loadAll();
+                renderBugTable(); renderDashboard(); renderAlerts();
+                openTrash();
+            } catch (e) { toast('Khôi phục lỗi: ' + e.message, 'error'); }
+        });
+    });
+    modal.hidden = false;
+}
+
+(async function init() {
+    Auth.load();
+    const form = document.getElementById('login-form');
+    if (form) form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const pass = document.getElementById('login-password').value;
+        const errEl = document.getElementById('login-error');
+        if (errEl) errEl.textContent = '';
+        try { await doLogin(email, pass); }
+        catch (err) { if (errEl) errEl.textContent = err.message; }
+    });
+    const lo = document.getElementById('btn-logout');
+    if (lo) lo.addEventListener('click', logout);
+    const tb = document.getElementById('btn-trash');
+    if (tb) tb.addEventListener('click', openTrash);
+
+    if (!Auth.token) { showLogin(); return; }
+    try {
+        await apiCall('GET', '/auth/me');   // validate token
+        hideLogin();
+        await startApp();
+    } catch (e) {
+        showLogin();   // token hỏng → apiCall đã clear + showLogin
+    }
 })();

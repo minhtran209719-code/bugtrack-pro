@@ -3,14 +3,20 @@
 //   - Mọi function PHẢI nhận workspace_id ở tham số đầu, KHÔNG default.
 //   - attachments, history lưu JSON string (cột TEXT). API trả về đã parse.
 //   - id = 'BUG-' + ulid(); display_number = MAX+1 per workspace (UI 'BUG-0042').
+// SOFT-DELETE (migration 004): xoá = set deleted_at/deleted_by, KHÔNG xoá row.
+//   - Mọi read path lọc `deleted_at IS NULL` (trừ changedSince: phát tín hiệu xoá cho client khác).
+//   - nextDisplayNumber tính MAX trên CẢ row đã xoá mềm → không tái dùng số, không reset.
+// ATTRIBUTION: created_by / assigned_by+assigned_at / deleted_by lưu TÊN người (nhất quán assignee/reporter là tên).
 
 const { ulid } = require('ulid');
 const { open } = require('./connection');
 
 function makeId() { return 'BUG-' + ulid(); }
+function actorName(actor) { return (actor && (actor.name || actor.userId)) || null; }
 
 function nextDisplayNumber(workspaceId) {
     const db = open();
+    // KHÔNG lọc deleted_at: giữ MAX trên mọi row (kể cả xoá mềm) để số không bị tái dùng.
     const row = db.prepare(
         'SELECT COALESCE(MAX(display_number), 0) AS m FROM bugs WHERE workspace_id = ?'
     ).get(workspaceId);
@@ -40,6 +46,11 @@ function rowToBug(r) {
         completedDate: r.completed_date,
         attachments: r.attachments ? JSON.parse(r.attachments) : [],
         history: r.history ? JSON.parse(r.history) : [],
+        createdBy: r.created_by,
+        assignedBy: r.assigned_by,
+        assignedAt: r.assigned_at,
+        deletedAt: r.deleted_at,
+        deletedBy: r.deleted_by,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     };
@@ -62,9 +73,18 @@ const FIELD_LABELS = {
     supportNote: 'Ghi chú TT', foundDate: 'Ngày phát hiện',
 };
 
+// deletedMode: 'active' (mặc định, chưa xoá) | 'only' (chỉ đã xoá) | 'all'
+function deletedClause(deletedMode) {
+    if (deletedMode === 'only') return 'deleted_at IS NOT NULL';
+    if (deletedMode === 'all') return null;
+    return 'deleted_at IS NULL';
+}
+
 function buildWhere(workspaceId, filters = {}) {
     const where = ['workspace_id = ?'];
     const args = [workspaceId];
+    const dc = deletedClause(filters.deletedMode);
+    if (dc) where.push(dc);
     if (filters.product)   { where.push('product = ?');   args.push(filters.product); }
     if (filters.status)    { where.push('status = ?');    args.push(filters.status); }
     if (filters.severity)  { where.push('severity = ?');  args.push(filters.severity); }
@@ -104,28 +124,33 @@ function list(workspaceId, opts = {}) {
     };
 }
 
-function get(workspaceId, id) {
+// Lấy 1 bug. Mặc định KHÔNG trả bug đã xoá mềm (opts.includeDeleted=true để restore/admin).
+function get(workspaceId, id, opts = {}) {
     const db = open();
     const row = db.prepare(
         'SELECT * FROM bugs WHERE workspace_id = ? AND id = ?'
     ).get(workspaceId, id);
+    if (!row) return null;
+    if (!opts.includeDeleted && row.deleted_at) return null;
     return rowToBug(row);
 }
 
 function getByDisplayNumber(workspaceId, n) {
     const db = open();
     const row = db.prepare(
-        'SELECT * FROM bugs WHERE workspace_id = ? AND display_number = ?'
+        'SELECT * FROM bugs WHERE workspace_id = ? AND display_number = ? AND deleted_at IS NULL'
     ).get(workspaceId, n);
     return rowToBug(row);
 }
 
-function create(workspaceId, input) {
+function create(workspaceId, input, actor) {
     const db = open();
     const now = new Date().toISOString();
     const id = makeId();
     const display = nextDisplayNumber(workspaceId);
-    const history = [{ time: now, action: 'Tạo mới', detail: `Tạo lỗi "${input.name || ''}"` }];
+    const who = actorName(actor);
+    const history = [{ time: now, action: 'Tạo mới', detail: `Tạo lỗi "${input.name || ''}"${who ? ' (bởi ' + who + ')' : ''}` }];
+    const hasAssignee = !!(input.assignee && String(input.assignee).trim());
 
     db.prepare(`
         INSERT INTO bugs (
@@ -133,8 +158,8 @@ function create(workspaceId, input) {
             type, severity, status, module, reporter, assignee,
             test_status, support_note, dev_note,
             found_date, deadline, completed_date,
-            attachments, history, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            attachments, history, created_by, assigned_by, assigned_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         id, workspaceId, display,
         input.product, input.name || '', input.description || null,
@@ -145,16 +170,20 @@ function create(workspaceId, input) {
         input.status === 'Đã xử lí' ? now : null,
         JSON.stringify(input.attachments || []),
         JSON.stringify(history),
+        who,
+        hasAssignee ? who : null,
+        hasAssignee ? now : null,
         now, now
     );
 
     return get(workspaceId, id);
 }
 
-function update(workspaceId, id, patch) {
+function update(workspaceId, id, patch, actor) {
     const db = open();
-    const old = get(workspaceId, id);
+    const old = get(workspaceId, id); // không cho update bug đã xoá mềm
     if (!old) return null;
+    const who = actorName(actor);
 
     // Diff để ghi history
     const changes = [];
@@ -168,7 +197,7 @@ function update(workspaceId, id, patch) {
     const now = new Date().toISOString();
     const history = [...(old.history || [])];
     if (changes.length > 0) {
-        history.push({ time: now, action: 'Cập nhật', detail: changes.join(' | ') });
+        history.push({ time: now, action: 'Cập nhật', detail: changes.join(' | ') + (who ? ` (bởi ${who})` : '') });
     }
 
     // Build SET clause
@@ -192,6 +221,11 @@ function update(workspaceId, id, patch) {
     if (patch.status === 'Đã xử lí' && old.status !== 'Đã xử lí' && !('completedDate' in patch)) {
         sets.push('completed_date = ?'); args.push(now);
     }
+    // "Nhận bởi ai": khi assignee đổi sang người mới → ghi người gán + thời điểm
+    if ('assignee' in patch && (patch.assignee || '') !== (old.assignee || '')) {
+        sets.push('assigned_by = ?'); args.push(patch.assignee ? who : null);
+        sets.push('assigned_at = ?'); args.push(patch.assignee ? now : null);
+    }
     sets.push('updated_at = ?'); args.push(now);
 
     if (sets.length === 1) return old; // Không có thay đổi thực sự
@@ -203,14 +237,36 @@ function update(workspaceId, id, patch) {
     return get(workspaceId, id);
 }
 
-function remove(workspaceId, id) {
+// Xoá MỀM: giữ row + attachments (để khôi phục). Trả bug đã xoá.
+function remove(workspaceId, id, actor) {
     const db = open();
     const bug = get(workspaceId, id);
     if (!bug) return null;
-    db.prepare('DELETE FROM bugs WHERE workspace_id = ? AND id = ?').run(workspaceId, id);
-    return bug; // Trả về bug đã xoá để caller có thể cleanup attachments
+    const now = new Date().toISOString();
+    const who = actorName(actor);
+    const history = [...(bug.history || []), { time: now, action: 'Xoá', detail: `Xoá mềm${who ? ' (bởi ' + who + ')' : ''}` }];
+    db.prepare(
+        'UPDATE bugs SET deleted_at = ?, deleted_by = ?, history = ?, updated_at = ? WHERE workspace_id = ? AND id = ?'
+    ).run(now, who, JSON.stringify(history), now, workspaceId, id);
+    return bug;
 }
 
+// Khôi phục bug đã xoá mềm.
+function restore(workspaceId, id, actor) {
+    const db = open();
+    const row = db.prepare('SELECT * FROM bugs WHERE workspace_id = ? AND id = ?').get(workspaceId, id);
+    if (!row || !row.deleted_at) return null;
+    const now = new Date().toISOString();
+    const who = actorName(actor);
+    const bug = rowToBug(row);
+    const history = [...(bug.history || []), { time: now, action: 'Khôi phục', detail: `Khôi phục${who ? ' (bởi ' + who + ')' : ''}` }];
+    db.prepare(
+        'UPDATE bugs SET deleted_at = NULL, deleted_by = NULL, history = ?, updated_at = ? WHERE workspace_id = ? AND id = ?'
+    ).run(JSON.stringify(history), now, workspaceId, id);
+    return get(workspaceId, id);
+}
+
+// changedSince: KHÔNG lọc deleted → trả cả bug vừa bị xoá mềm (deletedAt set) để client khác gỡ khỏi cache.
 function changedSince(workspaceId, sinceIso) {
     const db = open();
     const rows = db.prepare(
@@ -280,6 +336,7 @@ function summary(workspaceId, opts = {}) {
 }
 
 // Trả về tất cả URL attachments của workspace (dùng cho cron orphan cleanup).
+// Gồm CẢ bug đã xoá mềm — attachments của chúng KHÔNG phải orphan (còn khôi phục được).
 function allAttachmentUrls(workspaceId) {
     const db = open();
     const rows = db.prepare(
@@ -298,7 +355,7 @@ function allAttachmentUrls(workspaceId) {
 module.exports = {
     makeId, nextDisplayNumber, rowToBug,
     list, get, getByDisplayNumber,
-    create, update, delete: remove,
+    create, update, delete: remove, restore,
     changedSince,
     statsByAssignee, statsByReporter, statsByModule, summary,
     allAttachmentUrls,

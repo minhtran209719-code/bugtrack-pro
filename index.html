@@ -5,8 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BugTrack Pro - Quản lý lỗi & Tiến độ sản phẩm</title>
     <link rel="stylesheet" href="style.css?v=20260508h">
+    <style>
+        /* Seam #A: màn đăng nhập + ẩn nút theo quyền */
+        .login-screen { position: fixed; inset: 0; z-index: 9999; display: flex;
+            align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #1e293b, #0f172a); }
+        .login-card { background: #fff; padding: 32px 28px; border-radius: 14px;
+            width: 340px; max-width: 92vw; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+            display: flex; flex-direction: column; gap: 8px; }
+        .login-logo { font-size: 22px; font-weight: 700; text-align: center; }
+        .login-card h2 { margin: 4px 0 12px; text-align: center; font-size: 17px; color: #334155; }
+        .login-card label { font-size: 13px; color: #64748b; margin-top: 6px; }
+        .login-card input { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+        .login-card input:focus { outline: none; border-color: #6366f1; }
+        .login-card .btn-primary { margin-top: 14px; padding: 11px; border: none; border-radius: 8px;
+            background: #6366f1; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .login-card .btn-primary:hover { background: #4f46e5; }
+        .login-error { color: #dc2626; font-size: 13px; min-height: 18px; text-align: center; }
+        .user-box { display: flex; align-items: center; gap: 6px; justify-content: space-between;
+            font-size: 12px; color: #cbd5e1; padding: 6px 4px; }
+        .user-box #current-user { font-weight: 600; }
+        /* Support không xoá → ẩn nút xoá hàng loạt */
+        body.role-support .needs-delete { display: none !important; }
+    </style>
 </head>
 <body>
+    <!-- Màn đăng nhập (seam #A). autocomplete chuẩn để khỏi gợi ý lung tung. -->
+    <div id="login-screen" hidden class="login-screen">
+        <form id="login-form" class="login-card" autocomplete="on">
+            <div class="login-logo">🐞 BugTrack Pro</div>
+            <h2>Đăng nhập</h2>
+            <label for="login-email">Tài khoản</label>
+            <input id="login-email" name="username" type="text" autocomplete="username" required autofocus>
+            <label for="login-password">Mật khẩu</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+            <div id="login-error" class="login-error"></div>
+            <button type="submit" class="btn-primary">Đăng nhập</button>
+        </form>
+    </div>
+
     <div id="app">
         <!-- Sidebar -->
         <nav id="sidebar">
@@ -33,8 +70,10 @@
             <div class="sidebar-footer">
                 <button id="btn-export" class="btn-small" title="Xuất dữ liệu"><span class="btn-icon-emo">💾</span> <span class="btn-label">Xuất dữ liệu</span></button>
                 <button id="btn-import" class="btn-small" title="Nhập dữ liệu"><span class="btn-icon-emo">📂</span> <span class="btn-label">Nhập dữ liệu</span></button>
+                <button id="btn-trash" class="btn-small" title="Thùng rác — khôi phục lỗi đã xoá"><span class="btn-icon-emo">🗑️</span> <span class="btn-label">Thùng rác</span></button>
                 <input type="file" id="import-file" accept=".json" hidden>
                 <div class="sync-indicator">🔄 <span class="btn-label">Cập nhật lúc:</span> <span id="sync-time">--:--:--</span></div>
+                <div class="user-box"><span id="current-user"></span> <button id="btn-logout" class="btn-small" title="Đăng xuất">🚪 <span class="btn-label">Thoát</span></button></div>
             </div>
         </nav>
 
@@ -175,7 +214,7 @@
                     <span class="bulk-count">Đã chọn <strong id="bug-bulk-count">0</strong> lỗi</span>
                     <span class="bulk-spacer"></span>
                     <button class="btn-secondary" id="btn-bug-bulk-clear">Bỏ chọn</button>
-                    <button class="btn-danger" id="btn-bug-bulk-delete">🗑️ Xóa đã chọn</button>
+                    <button class="btn-danger needs-delete" id="btn-bug-bulk-delete">🗑️ Xóa đã chọn</button>
                 </div>
 
                 <!-- Bug table -->
@@ -235,7 +274,7 @@
                     <span class="bulk-count">Đã chọn <strong id="imp-bulk-count">0</strong> hạng mục</span>
                     <span class="bulk-spacer"></span>
                     <button class="btn-secondary" id="btn-imp-bulk-clear">Bỏ chọn</button>
-                    <button class="btn-danger" id="btn-imp-bulk-delete">🗑️ Xóa đã chọn</button>
+                    <button class="btn-danger needs-delete" id="btn-imp-bulk-delete">🗑️ Xóa đã chọn</button>
                 </div>
 
                 <div class="table-wrap">

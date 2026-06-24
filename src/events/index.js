@@ -33,9 +33,15 @@ function auditSubscriber(action) {
     };
 }
 
+bus.on('improvement.updated', (e) => logger.info({ event: 'improvement.updated', ...e.meta }, 'improvement updated'));
+bus.on('improvement.deleted', (e) => logger.info({ event: 'improvement.deleted', ...e.meta }, 'improvement deleted'));
+
 bus.on('bug.created', auditSubscriber('bug.create'));
 bus.on('bug.updated', auditSubscriber('bug.update'));
 bus.on('bug.deleted', auditSubscriber('bug.delete'));
+bus.on('improvement.created', auditSubscriber('improvement.create'));
+bus.on('improvement.updated', auditSubscriber('improvement.update'));
+bus.on('improvement.deleted', auditSubscriber('improvement.delete'));
 
 // API: emit({ type, ctx, resourceType, resourceId, payload, meta })
 function emit(type, payload) {

@@ -11,4 +11,5 @@ module.exports = {
     improvements: require('./improvements'),
     meta: require('./meta'),
     auditLog: require('./auditLog'),
+    users: require('./users'),
 };

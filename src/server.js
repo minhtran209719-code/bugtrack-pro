@@ -13,6 +13,8 @@ const db = require('./db');
 const storage = require('./storage');
 const { resolveContext } = require('./middleware/auth');
 const events = require('./events');
+const jwt = require('./auth/jwt');
+const password = require('./auth/password');
 const { run: runMigrations } = require('./migrations/runner');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -159,10 +161,61 @@ route('GET', /^\/api\/health$/, async (req, res) => {
     }
 });
 
+// ===== AUTH =====
+// /auth/login là PUBLIC (xem PUBLIC_API trong handler). Còn lại cần token.
+
+route('POST', new RegExp(`^${API}/auth/login$`), async (req, res) => {
+    const body = await readJSON(req);
+    const ws = config.defaults.workspace;
+    const email = String(body.email || '').trim();
+    const u = db.users.getByEmail(ws, email);
+    if (!u || !u.active || !password.verify(String(body.password || ''), u.password_hash)) {
+        logger.warn({ email }, 'login failed');
+        return sendJSON(res, { error: 'Sai email hoặc mật khẩu' }, 401);
+    }
+    const token = jwt.sign({ sub: u.id, name: u.name, role: u.role, ws });
+    db.auditLog.write({ workspaceId: ws, userId: u.id, action: 'login', resourceType: 'user', resourceId: u.id });
+    logger.info({ userId: u.id, name: u.name }, 'login ok');
+    sendJSON(res, { token, user: db.users.toPublic(u) });
+});
+
+route('GET', new RegExp(`^${API}/auth/me$`), async (req, res, ctx) => {
+    const u = db.users.getById(ctx.workspace, ctx.userId);
+    sendJSON(res, u ? db.users.toPublic(u) : { id: ctx.userId, name: ctx.name, role: ctx.role });
+});
+
+route('POST', new RegExp(`^${API}/auth/change-password$`), async (req, res, ctx) => {
+    const body = await readJSON(req);
+    const u = db.users.getById(ctx.workspace, ctx.userId);
+    if (!u) return sendJSON(res, { error: 'Not found' }, 404);
+    if (!password.verify(String(body.currentPassword || ''), u.password_hash)) {
+        return sendJSON(res, { error: 'Mật khẩu hiện tại không đúng' }, 400);
+    }
+    const np = String(body.newPassword || '');
+    if (np.length < 6) return sendJSON(res, { error: 'Mật khẩu mới tối thiểu 6 ký tự' }, 400);
+    db.users.setPassword(ctx.workspace, ctx.userId, password.hash(np));
+    db.auditLog.write({ workspaceId: ctx.workspace, userId: ctx.userId, action: 'password.change', resourceType: 'user', resourceId: ctx.userId });
+    sendJSON(res, { ok: true });
+});
+
+// Danh sách user (để FE hiển thị tên / admin quản lý). Chỉ admin.
+route('GET', new RegExp(`^${API}/auth/users$`), async (req, res, ctx) => {
+    if (ctx.role !== 'admin') return sendJSON(res, { error: 'Chỉ admin' }, 403);
+    sendJSON(res, { items: db.users.list(ctx.workspace) });
+});
+
+// ===== RBAC =====
+// role: 'admin' | 'dev' | 'support'. Khi AUTH_ENABLED=false, ctx.role='admin' (ẩn danh) → không chặn.
+function hasRole(ctx, ...roles) { return ctx && roles.includes(ctx.role); }
+function forbid(res, msg) { return sendJSON(res, { error: msg || 'Không đủ quyền' }, 403); }
+// Ai được xoá bug: dev + admin (support KHÔNG). Ai xoá product: chỉ admin.
+function canDeleteBug(ctx) { return hasRole(ctx, 'dev', 'admin'); }
+
 // ===== BUGS =====
 
 route('GET', new RegExp(`^${API}/bugs$`), async (req, res, ctx, q) => {
-    const result = db.bugs.list(ctx.workspace, q);
+    // q.deleted = 'only' (thùng rác) | 'all' | mặc định 'active'
+    const result = db.bugs.list(ctx.workspace, { ...q, deletedMode: q.deleted });
     sendJSON(res, result);
 });
 
@@ -195,8 +248,8 @@ route('POST', new RegExp(`^${API}/bugs$`), async (req, res, ctx) => {
     const body = await readJSON(req);
     if (!body.name) return sendJSON(res, { error: 'name required' }, 400);
     if (!body.product) return sendJSON(res, { error: 'product required' }, 400);
-    const bug = db.bugs.create(ctx.workspace, body);
-    events.emit('bug.created', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id, name: bug.name } });
+    const bug = db.bugs.create(ctx.workspace, body, ctx);
+    events.emit('bug.created', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id, name: bug.name, by: ctx.name } });
     sendJSON(res, bug, 201);
 });
 
@@ -213,23 +266,33 @@ route('PATCH', new RegExp(`^${API}/bugs/([\\w-]+)$`), async (req, res, ctx, q, m
         if (removed.length) await deleteAttachments(removed);
     }
 
-    const bug = db.bugs.update(ctx.workspace, m[1], body);
-    events.emit('bug.updated', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id }, payload: { patch: body } });
+    const bug = db.bugs.update(ctx.workspace, m[1], body, ctx);
+    events.emit('bug.updated', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id, by: ctx.name }, payload: { patch: body } });
     sendJSON(res, bug);
 });
 
+// Xoá MỀM (giữ file để khôi phục). Chỉ dev/admin. Support không được xoá.
 route('DELETE', new RegExp(`^${API}/bugs/([\\w-]+)$`), async (req, res, ctx, q, m) => {
-    const bug = db.bugs.delete(ctx.workspace, m[1]);
+    if (!canDeleteBug(ctx)) return forbid(res, 'Chỉ Dev/Admin được xoá lỗi');
+    const bug = db.bugs.delete(ctx.workspace, m[1], ctx);
     if (!bug) return sendJSON(res, { error: 'Not found' }, 404);
-    await deleteAttachments(bug.attachments || []);
-    events.emit('bug.deleted', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id } });
+    events.emit('bug.deleted', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id, by: ctx.name } });
     sendJSON(res, { ok: true });
+});
+
+// Khôi phục bug đã xoá mềm. Chỉ dev/admin.
+route('POST', new RegExp(`^${API}/bugs/([\\w-]+)/restore$`), async (req, res, ctx, q, m) => {
+    if (!canDeleteBug(ctx)) return forbid(res, 'Chỉ Dev/Admin được khôi phục');
+    const bug = db.bugs.restore(ctx.workspace, m[1], ctx);
+    if (!bug) return sendJSON(res, { error: 'Not found' }, 404);
+    events.emit('bug.updated', { ctx, resourceType: 'bug', resourceId: bug.id, meta: { id: bug.id, by: ctx.name, restored: true } });
+    sendJSON(res, bug);
 });
 
 // ===== IMPROVEMENTS =====
 
 route('GET', new RegExp(`^${API}/improvements$`), async (req, res, ctx, q) => {
-    sendJSON(res, db.improvements.list(ctx.workspace, q));
+    sendJSON(res, db.improvements.list(ctx.workspace, { ...q, deletedMode: q.deleted }));
 });
 
 route('GET', new RegExp(`^${API}/improvements/changed$`), async (req, res, ctx, q) => {
@@ -246,22 +309,33 @@ route('GET', new RegExp(`^${API}/improvements/([\\w-]+)$`), async (req, res, ctx
 route('POST', new RegExp(`^${API}/improvements$`), async (req, res, ctx) => {
     const body = await readJSON(req);
     if (!body.name) return sendJSON(res, { error: 'name required' }, 400);
-    const imp = db.improvements.create(ctx.workspace, body);
-    events.emit('improvement.created', { ctx, resourceType: 'improvement', resourceId: imp.id, meta: { id: imp.id, name: imp.name } });
+    const imp = db.improvements.create(ctx.workspace, body, ctx);
+    events.emit('improvement.created', { ctx, resourceType: 'improvement', resourceId: imp.id, meta: { id: imp.id, name: imp.name, by: ctx.name } });
     sendJSON(res, imp, 201);
 });
 
 route('PATCH', new RegExp(`^${API}/improvements/([\\w-]+)$`), async (req, res, ctx, q, m) => {
     const body = await readJSON(req);
-    const imp = db.improvements.update(ctx.workspace, m[1], body);
+    const imp = db.improvements.update(ctx.workspace, m[1], body, ctx);
     if (!imp) return sendJSON(res, { error: 'Not found' }, 404);
+    events.emit('improvement.updated', { ctx, resourceType: 'improvement', resourceId: imp.id, meta: { id: imp.id, by: ctx.name }, payload: { patch: body } });
     sendJSON(res, imp);
 });
 
 route('DELETE', new RegExp(`^${API}/improvements/([\\w-]+)$`), async (req, res, ctx, q, m) => {
-    const imp = db.improvements.delete(ctx.workspace, m[1]);
+    if (!canDeleteBug(ctx)) return forbid(res, 'Chỉ Dev/Admin được xoá');
+    const imp = db.improvements.delete(ctx.workspace, m[1], ctx);
     if (!imp) return sendJSON(res, { error: 'Not found' }, 404);
+    events.emit('improvement.deleted', { ctx, resourceType: 'improvement', resourceId: imp.id, meta: { id: imp.id, by: ctx.name } });
     sendJSON(res, { ok: true });
+});
+
+route('POST', new RegExp(`^${API}/improvements/([\\w-]+)/restore$`), async (req, res, ctx, q, m) => {
+    if (!canDeleteBug(ctx)) return forbid(res, 'Chỉ Dev/Admin được khôi phục');
+    const imp = db.improvements.restore(ctx.workspace, m[1]);
+    if (!imp) return sendJSON(res, { error: 'Not found' }, 404);
+    events.emit('improvement.updated', { ctx, resourceType: 'improvement', resourceId: imp.id, meta: { id: imp.id, by: ctx.name, restored: true } });
+    sendJSON(res, imp);
 });
 
 // ===== META =====
@@ -401,13 +475,10 @@ async function handleRequest(req, res) {
                 return null;
             });
 
-            // Health public
-            if (pathname === '/api/health') {
-                const hcRoute = routes.find(r => r.method === 'GET' && r.pattern.test(pathname));
-                if (hcRoute) return await hcRoute.handler(req, res, ctx, u.query);
-            }
-
-            if (!ctx) return sendJSON(res, { error: 'Unauthorized' }, 401);
+            // Public API: health + login (không cần token)
+            const isPublic = pathname === '/api/health'
+                || (req.method === 'POST' && pathname === `${API}/auth/login`);
+            if (!ctx && !isPublic) return sendJSON(res, { error: 'Unauthorized' }, 401);
 
             for (const r of routes) {
                 if (r.method !== req.method) continue;
