@@ -184,6 +184,11 @@ route('GET', new RegExp(`^${API}/auth/me$`), async (req, res, ctx) => {
     sendJSON(res, u ? db.users.toPublic(u) : { id: ctx.userId, name: ctx.name, role: ctx.role });
 });
 
+// Danh bạ id→tên+vai cho FE (resolve hiển thị + đổ dropdown assignee/reporter). Mọi user login.
+route('GET', new RegExp(`^${API}/auth/directory$`), async (req, res, ctx) => {
+    sendJSON(res, { items: db.users.directory(ctx.workspace) });
+});
+
 route('POST', new RegExp(`^${API}/auth/change-password$`), async (req, res, ctx) => {
     const body = await readJSON(req);
     const u = db.users.getById(ctx.workspace, ctx.userId);

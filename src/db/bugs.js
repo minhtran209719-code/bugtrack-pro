@@ -10,9 +10,12 @@
 
 const { ulid } = require('ulid');
 const { open } = require('./connection');
+const users = require('./users');
 
 function makeId() { return 'BUG-' + ulid(); }
-function actorName(actor) { return (actor && (actor.name || actor.userId)) || null; }
+// LƯU THEO ID: created_by/assigned_by/deleted_by + assignee/reporter = userId. Hiển thị resolve qua nameMap.
+function actorId(actor) { return (actor && actor.userId) || null; }
+function actorLabel(actor) { return (actor && (actor.name || actor.userId)) || null; } // tên cho history (point-in-time)
 
 function nextDisplayNumber(workspaceId) {
     const db = open();
@@ -148,8 +151,9 @@ function create(workspaceId, input, actor) {
     const now = new Date().toISOString();
     const id = makeId();
     const display = nextDisplayNumber(workspaceId);
-    const who = actorName(actor);
-    const history = [{ time: now, action: 'Tạo mới', detail: `Tạo lỗi "${input.name || ''}"${who ? ' (bởi ' + who + ')' : ''}` }];
+    const who = actorId(actor);          // lưu id vào cột
+    const wholabel = actorLabel(actor);  // tên cho history
+    const history = [{ time: now, action: 'Tạo mới', detail: `Tạo lỗi "${input.name || ''}"${wholabel ? ' (bởi ' + wholabel + ')' : ''}` }];
     const hasAssignee = !!(input.assignee && String(input.assignee).trim());
 
     db.prepare(`
@@ -183,21 +187,24 @@ function update(workspaceId, id, patch, actor) {
     const db = open();
     const old = get(workspaceId, id); // không cho update bug đã xoá mềm
     if (!old) return null;
-    const who = actorName(actor);
+    const wholabel = actorLabel(actor);
+    const nm = users.nameMap(workspaceId); // resolve id→tên cho history của assignee/reporter
 
-    // Diff để ghi history
+    // Diff để ghi history (assignee/reporter là id → hiện tên)
     const changes = [];
     for (const key of Object.keys(patch)) {
         if (FIELD_LABELS[key] && patch[key] !== old[key]) {
-            const oldV = old[key] === null || old[key] === undefined || old[key] === '' ? '(trống)' : old[key];
-            const newV = patch[key] === null || patch[key] === undefined || patch[key] === '' ? '(trống)' : patch[key];
+            const resolve = (v) => (key === 'assignee' || key === 'reporter') && v ? (nm[v] || v) : v;
+            let oldV = resolve(old[key]), newV = resolve(patch[key]);
+            oldV = oldV === null || oldV === undefined || oldV === '' ? '(trống)' : oldV;
+            newV = newV === null || newV === undefined || newV === '' ? '(trống)' : newV;
             changes.push(`${FIELD_LABELS[key]}: "${oldV}" → "${newV}"`);
         }
     }
     const now = new Date().toISOString();
     const history = [...(old.history || [])];
     if (changes.length > 0) {
-        history.push({ time: now, action: 'Cập nhật', detail: changes.join(' | ') + (who ? ` (bởi ${who})` : '') });
+        history.push({ time: now, action: 'Cập nhật', detail: changes.join(' | ') + (wholabel ? ` (bởi ${wholabel})` : '') });
     }
 
     // Build SET clause
@@ -221,9 +228,9 @@ function update(workspaceId, id, patch, actor) {
     if (patch.status === 'Đã xử lí' && old.status !== 'Đã xử lí' && !('completedDate' in patch)) {
         sets.push('completed_date = ?'); args.push(now);
     }
-    // "Nhận bởi ai": khi assignee đổi sang người mới → ghi người gán + thời điểm
+    // "Nhận bởi ai": khi assignee đổi sang người mới → ghi người gán (id) + thời điểm
     if ('assignee' in patch && (patch.assignee || '') !== (old.assignee || '')) {
-        sets.push('assigned_by = ?'); args.push(patch.assignee ? who : null);
+        sets.push('assigned_by = ?'); args.push(patch.assignee ? actorId(actor) : null);
         sets.push('assigned_at = ?'); args.push(patch.assignee ? now : null);
     }
     sets.push('updated_at = ?'); args.push(now);
@@ -243,11 +250,10 @@ function remove(workspaceId, id, actor) {
     const bug = get(workspaceId, id);
     if (!bug) return null;
     const now = new Date().toISOString();
-    const who = actorName(actor);
-    const history = [...(bug.history || []), { time: now, action: 'Xoá', detail: `Xoá mềm${who ? ' (bởi ' + who + ')' : ''}` }];
+    const history = [...(bug.history || []), { time: now, action: 'Xoá', detail: `Xoá mềm${actorLabel(actor) ? ' (bởi ' + actorLabel(actor) + ')' : ''}` }];
     db.prepare(
         'UPDATE bugs SET deleted_at = ?, deleted_by = ?, history = ?, updated_at = ? WHERE workspace_id = ? AND id = ?'
-    ).run(now, who, JSON.stringify(history), now, workspaceId, id);
+    ).run(now, actorId(actor), JSON.stringify(history), now, workspaceId, id);
     return bug;
 }
 
@@ -257,9 +263,8 @@ function restore(workspaceId, id, actor) {
     const row = db.prepare('SELECT * FROM bugs WHERE workspace_id = ? AND id = ?').get(workspaceId, id);
     if (!row || !row.deleted_at) return null;
     const now = new Date().toISOString();
-    const who = actorName(actor);
     const bug = rowToBug(row);
-    const history = [...(bug.history || []), { time: now, action: 'Khôi phục', detail: `Khôi phục${who ? ' (bởi ' + who + ')' : ''}` }];
+    const history = [...(bug.history || []), { time: now, action: 'Khôi phục', detail: `Khôi phục${actorLabel(actor) ? ' (bởi ' + actorLabel(actor) + ')' : ''}` }];
     db.prepare(
         'UPDATE bugs SET deleted_at = NULL, deleted_by = NULL, history = ?, updated_at = ? WHERE workspace_id = ? AND id = ?'
     ).run(JSON.stringify(history), now, workspaceId, id);

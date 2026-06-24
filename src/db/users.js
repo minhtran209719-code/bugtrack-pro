@@ -30,6 +30,24 @@ function list(workspaceId) {
     ).all(workspaceId).map(toPublic);
 }
 
+// Danh bạ nhẹ cho FE: id → {id,name,role} của user ĐANG hoạt động (mọi user login đọc được).
+function directory(workspaceId) {
+    const db = open();
+    return db.prepare(
+        'SELECT id, name, role FROM users WHERE workspace_id = ? AND active = 1 ORDER BY role, name'
+    ).all(workspaceId);
+}
+
+// Map id → name (kể cả user đã khoá) để resolve hiển thị / history.
+function nameMap(workspaceId) {
+    const db = open();
+    const out = {};
+    for (const r of db.prepare('SELECT id, name FROM users WHERE workspace_id = ?').all(workspaceId)) {
+        out[r.id] = r.name;
+    }
+    return out;
+}
+
 function create(workspaceId, { email, name, passwordHash, role }) {
     const db = open();
     const now = new Date().toISOString();
@@ -72,4 +90,4 @@ function setActive(workspaceId, id, active) {
     return r.changes > 0;
 }
 
-module.exports = { toPublic, getByEmail, getById, list, create, setPassword, setRole, setActive, count, ROLES };
+module.exports = { toPublic, getByEmail, getById, list, directory, nameMap, create, setPassword, setRole, setActive, count, ROLES };

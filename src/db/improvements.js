@@ -6,7 +6,7 @@ const { ulid } = require('ulid');
 const { open } = require('./connection');
 
 function makeId() { return 'IMP-' + ulid(); }
-function actorName(actor) { return (actor && (actor.name || actor.userId)) || null; }
+function actorId(actor) { return (actor && actor.userId) || null; } // lưu id (assignee/proposer/created_by... = userId)
 
 function nextDisplayNumber(workspaceId) {
     const db = open();
@@ -103,7 +103,7 @@ function create(workspaceId, input, actor) {
     const now = new Date().toISOString();
     const id = makeId();
     const display = nextDisplayNumber(workspaceId);
-    const who = actorName(actor);
+    const who = actorId(actor);
     const hasAssignee = !!(input.assignee && String(input.assignee).trim());
 
     db.prepare(`
@@ -128,7 +128,7 @@ function update(workspaceId, id, patch, actor) {
     const db = open();
     const old = get(workspaceId, id);
     if (!old) return null;
-    const who = actorName(actor);
+    const who = actorId(actor);
     const ts = new Date().toISOString();
 
     const sets = [];
@@ -159,7 +159,7 @@ function remove(workspaceId, id, actor) {
     const ts = new Date().toISOString();
     db.prepare(
         'UPDATE improvements SET deleted_at = ?, deleted_by = ?, updated_at = ? WHERE workspace_id = ? AND id = ?'
-    ).run(ts, actorName(actor), ts, workspaceId, id);
+    ).run(ts, actorId(actor), ts, workspaceId, id);
     return imp;
 }
 
