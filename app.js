@@ -2310,6 +2310,9 @@ function applyRoleUI() {
     // Thùng rác: chỉ dev/admin
     const trash = document.getElementById('btn-trash');
     if (trash) trash.style.display = Auth.canDelete() ? '' : 'none';
+    // Quản lý user: chỉ admin
+    const usersBtn = document.getElementById('btn-users');
+    if (usersBtn) usersBtn.style.display = Auth.is('admin') ? '' : 'none';
 }
 
 async function startApp() {
@@ -2341,6 +2344,20 @@ async function doLogin(email, pass) {
     Auth.set(r.token, r.user);
     hideLogin();
     await startApp();
+}
+async function doRegister(payload) {
+    const r = await apiCall('POST', '/auth/register', payload);
+    Auth.set(r.token, r.user); // auto-login sau đăng ký
+    hideLogin();
+    await startApp();
+}
+function showLoginForm() {
+    document.getElementById('register-form').hidden = true;
+    document.getElementById('login-form').hidden = false;
+}
+function showRegisterForm() {
+    document.getElementById('login-form').hidden = true;
+    document.getElementById('register-form').hidden = false;
 }
 function logout() { Auth.clear(); location.reload(); }
 
@@ -2385,6 +2402,72 @@ async function openTrash() {
     modal.hidden = false;
 }
 
+// ===== Admin: quản lý người dùng =====
+async function openUsers() {
+    if (!Auth.is('admin')) { toast('Chỉ admin được quản lý người dùng', 'error'); return; }
+    let data;
+    try { data = await apiCall('GET', '/auth/users'); }
+    catch (e) { toast('Lỗi tải user: ' + e.message, 'error'); return; }
+    const items = data.items || [];
+    let modal = document.getElementById('users-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'users-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-content" style="max-width:700px">
+            <div class="modal-header"><h3>👥 Quản lý người dùng</h3>
+            <button class="modal-close" id="users-close">✕</button></div>
+            <div class="u-add">
+              <input id="nu-email" placeholder="tài khoản" style="width:120px">
+              <input id="nu-name" placeholder="Tên hiển thị" style="width:130px">
+              <select id="nu-role"><option value="support">support</option><option value="dev">dev</option><option value="admin">admin</option></select>
+              <button class="btn-small" id="nu-add">➕ Thêm user</button>
+            </div>
+            <div id="users-body" style="max-height:55vh;overflow:auto"></div></div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#users-close').addEventListener('click', () => { modal.hidden = true; });
+        modal.querySelector('#nu-add').addEventListener('click', async () => {
+            const email = modal.querySelector('#nu-email').value.trim();
+            const name = modal.querySelector('#nu-name').value.trim();
+            const role = modal.querySelector('#nu-role').value;
+            if (!email || !name) { toast('Nhập tài khoản + tên', 'error'); return; }
+            try {
+                const r = await apiCall('POST', '/auth/users', { email, name, role });
+                alert(`Đã tạo "${name}".\nTài khoản: ${email}\nMật khẩu tạm: ${r.tempPassword}\n→ Gửi cho người dùng, họ tự đổi sau.`);
+                modal.querySelector('#nu-email').value = ''; modal.querySelector('#nu-name').value = '';
+                openUsers();
+            } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+        });
+    }
+    const body = modal.querySelector('#users-body');
+    body.innerHTML = items.map(u => `
+        <div class="u-row ${u.active ? '' : 'locked'}">
+            <strong style="min-width:90px">${esc(u.name || u.email)}</strong>
+            <span style="color:#888;min-width:80px;font-size:12px">${esc(u.email)}</span>
+            <span class="role-pill ${esc(u.role)}">${esc(u.role)}</span>
+            <select class="u-role" data-id="${u.id}" title="Đổi vai">
+              ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+            <button class="btn-small u-lock" data-id="${u.id}" data-active="${u.active}">${u.active ? '🔒 Khoá' : '🔓 Mở khoá'}</button>
+            <button class="btn-small u-reset" data-id="${u.id}">🔁 Reset MK</button>
+        </div>`).join('');
+    body.querySelectorAll('.u-role').forEach(sel => sel.addEventListener('change', async () => {
+        try { await apiCall('PATCH', `/auth/users/${sel.dataset.id}`, { role: sel.value }); toast('Đã đổi vai trò', 'success'); openUsers(); }
+        catch (e) { toast('Lỗi: ' + e.message, 'error'); openUsers(); }
+    }));
+    body.querySelectorAll('.u-lock').forEach(btn => btn.addEventListener('click', async () => {
+        const next = !(btn.dataset.active === 'true');
+        try { await apiCall('PATCH', `/auth/users/${btn.dataset.id}`, { active: next }); toast(next ? 'Đã mở khoá' : 'Đã khoá', 'success'); openUsers(); }
+        catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+    }));
+    body.querySelectorAll('.u-reset').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Reset mật khẩu người dùng này thành mật khẩu tạm mới?')) return;
+        try { const r = await apiCall('POST', `/auth/users/${btn.dataset.id}/reset-password`); alert('Mật khẩu tạm mới: ' + r.tempPassword + '\n→ Gửi cho người dùng.'); }
+        catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+    }));
+    modal.hidden = false;
+}
+
 (async function init() {
     Auth.load();
     // Con mắt hiện/ẩn mật khẩu
@@ -2418,6 +2501,38 @@ async function openTrash() {
     if (lo) lo.addEventListener('click', logout);
     const tb = document.getElementById('btn-trash');
     if (tb) tb.addEventListener('click', openTrash);
+    const ub = document.getElementById('btn-users');
+    if (ub) ub.addEventListener('click', openUsers);
+
+    // Chuyển đổi Đăng nhập ↔ Đăng ký
+    const showReg = document.getElementById('show-register');
+    if (showReg) showReg.addEventListener('click', (e) => { e.preventDefault(); showRegisterForm(); });
+    const showLog = document.getElementById('show-login');
+    if (showLog) showLog.addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
+    const regEye = document.getElementById('reg-pw-toggle');
+    if (regEye) regEye.addEventListener('click', () => {
+        const inp = document.getElementById('reg-password');
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        regEye.classList.toggle('on', show);
+    });
+    const regForm = document.getElementById('register-form');
+    if (regForm) regForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            email: document.getElementById('reg-email').value.trim(),
+            name: document.getElementById('reg-name').value.trim(),
+            password: document.getElementById('reg-password').value,
+            code: document.getElementById('reg-code').value.trim(),
+        };
+        const errEl = document.getElementById('register-error');
+        const btn = document.getElementById('register-submit');
+        if (errEl) errEl.textContent = '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang đăng ký…'; }
+        try { await doRegister(payload); }
+        catch (err) { if (errEl) errEl.textContent = err.message || 'Đăng ký thất bại'; }
+        finally { if (btn) { btn.disabled = false; btn.textContent = 'Đăng ký & vào app'; } }
+    });
 
     if (!Auth.token) { showLogin(); return; }
     try {

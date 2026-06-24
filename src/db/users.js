@@ -55,4 +55,21 @@ function count(workspaceId) {
     return db.prepare('SELECT COUNT(*) AS c FROM users WHERE workspace_id = ?').get(workspaceId).c;
 }
 
-module.exports = { toPublic, getByEmail, getById, list, create, setPassword, count };
+const ROLES = ['admin', 'dev', 'support'];
+
+function setRole(workspaceId, id, role) {
+    if (!ROLES.includes(role)) return false;
+    const db = open();
+    const r = db.prepare('UPDATE users SET role = ?, updated_at = ? WHERE workspace_id = ? AND id = ?')
+        .run(role, new Date().toISOString(), workspaceId, id);
+    return r.changes > 0;
+}
+
+function setActive(workspaceId, id, active) {
+    const db = open();
+    const r = db.prepare('UPDATE users SET active = ?, updated_at = ? WHERE workspace_id = ? AND id = ?')
+        .run(active ? 1 : 0, new Date().toISOString(), workspaceId, id);
+    return r.changes > 0;
+}
+
+module.exports = { toPublic, getByEmail, getById, list, create, setPassword, setRole, setActive, count, ROLES };

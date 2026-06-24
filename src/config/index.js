@@ -56,6 +56,10 @@ module.exports = {
         enabled: bool(process.env.AUTH_ENABLED, false),
         jwtSecret: process.env.JWT_SECRET || 'dev-only-secret',
         jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+        // Tự đăng ký: bật/tắt + mã đăng ký (app public → nên đặt mã để người lạ không tạo được TK).
+        allowRegister: bool(process.env.AUTH_ALLOW_REGISTER, true),
+        registrationCode: process.env.REGISTRATION_CODE || '', // rỗng = không cần mã
+        defaultRole: process.env.AUTH_DEFAULT_ROLE || 'support', // vai mặc định khi tự đăng ký
     },
 
     audit: {

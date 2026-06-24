@@ -204,6 +204,75 @@ route('GET', new RegExp(`^${API}/auth/users$`), async (req, res, ctx) => {
     sendJSON(res, { items: db.users.list(ctx.workspace) });
 });
 
+// Đăng ký tự phục vụ (PUBLIC). App public Internet → yêu cầu mã đăng ký nếu có cấu hình.
+const EMAIL_RE = /^[^\s@]{2,40}(@[^\s@]+\.[^\s@]+)?$/; // cho phép 'quang' hoặc 'a@b.com'
+route('POST', new RegExp(`^${API}/auth/register$`), async (req, res) => {
+    if (!config.auth.allowRegister) return sendJSON(res, { error: 'Đăng ký đang tắt' }, 403);
+    const body = await readJSON(req);
+    const ws = config.defaults.workspace;
+    if (config.auth.registrationCode && String(body.code || '') !== config.auth.registrationCode) {
+        return sendJSON(res, { error: 'Mã đăng ký không đúng' }, 403);
+    }
+    const email = String(body.email || '').trim().toLowerCase();
+    const name = String(body.name || '').trim();
+    const pass = String(body.password || '');
+    if (!EMAIL_RE.test(email)) return sendJSON(res, { error: 'Tài khoản không hợp lệ (2-40 ký tự, không dấu cách)' }, 400);
+    if (!name) return sendJSON(res, { error: 'Cần nhập tên hiển thị' }, 400);
+    if (pass.length < 6) return sendJSON(res, { error: 'Mật khẩu tối thiểu 6 ký tự' }, 400);
+    if (db.users.getByEmail(ws, email)) return sendJSON(res, { error: 'Tài khoản đã tồn tại' }, 409);
+    const u = db.users.create(ws, { email, name, role: config.auth.defaultRole, passwordHash: password.hash(pass) });
+    db.auditLog.write({ workspaceId: ws, userId: u.id, action: 'register', resourceType: 'user', resourceId: u.id });
+    logger.info({ userId: u.id, name: u.name, role: u.role }, 'user registered');
+    const token = jwt.sign({ sub: u.id, name: u.name, role: u.role, ws });
+    sendJSON(res, { token, user: db.users.toPublic(u) }, 201);
+});
+
+// ===== ADMIN: quản lý user =====
+route('POST', new RegExp(`^${API}/auth/users$`), async (req, res, ctx) => {
+    if (ctx.role !== 'admin') return forbid(res, 'Chỉ admin');
+    const body = await readJSON(req);
+    const ws = ctx.workspace;
+    const email = String(body.email || '').trim().toLowerCase();
+    const name = String(body.name || '').trim();
+    if (!EMAIL_RE.test(email)) return sendJSON(res, { error: 'Tài khoản không hợp lệ' }, 400);
+    if (!name) return sendJSON(res, { error: 'Cần nhập tên' }, 400);
+    if (db.users.getByEmail(ws, email)) return sendJSON(res, { error: 'Tài khoản đã tồn tại' }, 409);
+    const role = db.users.ROLES.includes(body.role) ? body.role : 'support';
+    const provided = body.password ? String(body.password) : null;
+    const pass = provided || password.genTemp(10);
+    const u = db.users.create(ws, { email, name, role, passwordHash: password.hash(pass) });
+    db.auditLog.write({ workspaceId: ws, userId: ctx.userId, action: 'user.create', resourceType: 'user', resourceId: u.id, payload: { role } });
+    sendJSON(res, { user: db.users.toPublic(u), tempPassword: provided ? undefined : pass }, 201);
+});
+
+route('PATCH', new RegExp(`^${API}/auth/users/([\\w-]+)$`), async (req, res, ctx, q, m) => {
+    if (ctx.role !== 'admin') return forbid(res, 'Chỉ admin');
+    const ws = ctx.workspace, id = m[1];
+    const target = db.users.getById(ws, id);
+    if (!target) return sendJSON(res, { error: 'Not found' }, 404);
+    const body = await readJSON(req);
+    // Chặn admin tự khoá / tự hạ quyền chính mình (tránh mất admin cuối cùng)
+    if (id === ctx.userId && (body.active === false || (body.role && body.role !== 'admin'))) {
+        return sendJSON(res, { error: 'Không thể tự khoá / hạ quyền chính mình' }, 400);
+    }
+    if (body.role !== undefined && !db.users.setRole(ws, id, body.role)) {
+        return sendJSON(res, { error: 'Vai trò không hợp lệ' }, 400);
+    }
+    if (body.active !== undefined) db.users.setActive(ws, id, body.active);
+    db.auditLog.write({ workspaceId: ws, userId: ctx.userId, action: 'user.update', resourceType: 'user', resourceId: id, payload: body });
+    sendJSON(res, db.users.toPublic(db.users.getById(ws, id)));
+});
+
+route('POST', new RegExp(`^${API}/auth/users/([\\w-]+)/reset-password$`), async (req, res, ctx, q, m) => {
+    if (ctx.role !== 'admin') return forbid(res, 'Chỉ admin');
+    const ws = ctx.workspace, id = m[1];
+    if (!db.users.getById(ws, id)) return sendJSON(res, { error: 'Not found' }, 404);
+    const temp = password.genTemp(10);
+    db.users.setPassword(ws, id, password.hash(temp));
+    db.auditLog.write({ workspaceId: ws, userId: ctx.userId, action: 'password.reset', resourceType: 'user', resourceId: id });
+    sendJSON(res, { ok: true, tempPassword: temp });
+});
+
 // ===== RBAC =====
 // role: 'admin' | 'dev' | 'support'. Khi AUTH_ENABLED=false, ctx.role='admin' (ẩn danh) → không chặn.
 function hasRole(ctx, ...roles) { return ctx && roles.includes(ctx.role); }
@@ -475,9 +544,9 @@ async function handleRequest(req, res) {
                 return null;
             });
 
-            // Public API: health + login (không cần token)
+            // Public API: health + login + register (không cần token)
             const isPublic = pathname === '/api/health'
-                || (req.method === 'POST' && pathname === `${API}/auth/login`);
+                || (req.method === 'POST' && (pathname === `${API}/auth/login` || pathname === `${API}/auth/register`));
             if (!ctx && !isPublic) return sendJSON(res, { error: 'Unauthorized' }, 401);
 
             for (const r of routes) {

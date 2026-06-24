@@ -31,6 +31,19 @@
         .pw-toggle:hover { opacity: 1; }
         .pw-toggle.on { opacity: 1; filter: drop-shadow(0 0 1px #6366f1); }
         .login-error { color: #dc2626; font-size: 13px; min-height: 18px; text-align: center; }
+        .login-switch { text-align: center; font-size: 13px; color: #64748b; margin-top: 10px; }
+        .login-switch a { color: #6366f1; font-weight: 600; text-decoration: none; }
+        .login-switch a:hover { text-decoration: underline; }
+        .login-hint { text-align: center; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
+        /* Admin user panel */
+        #users-modal .u-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+        #users-modal .u-row.locked { opacity: .55; }
+        #users-modal select, #users-modal input { padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+        #users-modal .u-add { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+        .role-pill { font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+        .role-pill.admin { background: #fee2e2; color: #b91c1c; }
+        .role-pill.dev { background: #dbeafe; color: #1d4ed8; }
+        .role-pill.support { background: #dcfce7; color: #166534; }
         .user-box { display: flex; align-items: center; gap: 6px; justify-content: space-between;
             font-size: 12px; color: #cbd5e1; padding: 6px 4px; }
         .user-box #current-user { font-weight: 600; }
@@ -53,6 +66,27 @@
             </div>
             <div id="login-error" class="login-error"></div>
             <button type="submit" id="login-submit" class="btn-primary">Đăng nhập</button>
+            <div class="login-switch">Chưa có tài khoản? <a href="#" id="show-register">Đăng ký</a></div>
+            <div class="login-hint">Quên mật khẩu? Liên hệ admin để cấp lại.</div>
+        </form>
+
+        <form id="register-form" class="login-card" hidden autocomplete="on">
+            <div class="login-logo">🐞 BugTrack Pro</div>
+            <h2>Đăng ký tài khoản</h2>
+            <label for="reg-email">Tài khoản (không dấu cách)</label>
+            <input id="reg-email" name="username" type="text" autocomplete="username" required>
+            <label for="reg-name">Tên hiển thị</label>
+            <input id="reg-name" type="text" required>
+            <label for="reg-password">Mật khẩu (≥6 ký tự)</label>
+            <div class="pw-wrap">
+                <input id="reg-password" name="new-password" type="password" autocomplete="new-password" required>
+                <button type="button" id="reg-pw-toggle" class="pw-toggle" tabindex="-1" title="Hiện/ẩn mật khẩu">👁️</button>
+            </div>
+            <label for="reg-code">Mã đăng ký (hỏi admin)</label>
+            <input id="reg-code" type="text" autocomplete="off">
+            <div id="register-error" class="login-error"></div>
+            <button type="submit" id="register-submit" class="btn-primary">Đăng ký &amp; vào app</button>
+            <div class="login-switch">Đã có tài khoản? <a href="#" id="show-login">Đăng nhập</a></div>
         </form>
     </div>
 
@@ -83,6 +117,7 @@
                 <button id="btn-export" class="btn-small" title="Xuất dữ liệu"><span class="btn-icon-emo">💾</span> <span class="btn-label">Xuất dữ liệu</span></button>
                 <button id="btn-import" class="btn-small" title="Nhập dữ liệu"><span class="btn-icon-emo">📂</span> <span class="btn-label">Nhập dữ liệu</span></button>
                 <button id="btn-trash" class="btn-small" title="Thùng rác — khôi phục lỗi đã xoá"><span class="btn-icon-emo">🗑️</span> <span class="btn-label">Thùng rác</span></button>
+                <button id="btn-users" class="btn-small" title="Quản lý người dùng (admin)"><span class="btn-icon-emo">👥</span> <span class="btn-label">Người dùng</span></button>
                 <input type="file" id="import-file" accept=".json" hidden>
                 <div class="sync-indicator">🔄 <span class="btn-label">Cập nhật lúc:</span> <span id="sync-time">--:--:--</span></div>
                 <div class="user-box"><span id="current-user"></span> <button id="btn-logout" class="btn-small" title="Đăng xuất">🚪 <span class="btn-label">Thoát</span></button></div>
@@ -483,6 +518,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-auth"></script>
+    <script src="app.js?v=20260624-auth2"></script>
 </body>
 </html>
