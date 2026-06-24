@@ -20,7 +20,17 @@ const ROOT = path.resolve(__dirname, '..', '..');
 module.exports = {
     env: process.env.NODE_ENV || 'development',
     port: int(process.env.PORT, 3000),
+    // Bind localhost mặc định: nginx proxy tới 127.0.0.1, KHÔNG phơi cổng trần ra Internet.
+    // Chỉ đặt HOST=0.0.0.0 khi cố ý cho truy cập trực tiếp (LAN tin cậy).
+    host: process.env.HOST || '127.0.0.1',
     logLevel: process.env.LOG_LEVEL || 'info',
+
+    // Seam bảo mật: chỉ origin trong allowlist mới được CORS (ghi cross-origin).
+    // Rỗng = chỉ same-origin (app tự phục vụ) hoạt động — an toàn nhất.
+    cors: {
+        allowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || '')
+            .split(',').map(s => s.trim()).filter(Boolean),
+    },
 
     db: {
         driver: process.env.DB_DRIVER || 'sqlite',

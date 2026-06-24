@@ -57,17 +57,29 @@ const MAX_JSON   = 10 * 1024 * 1024;  // 10MB JSON body
 // ===== Helpers =====
 
 function send(res, status, body, contentType = 'application/json; charset=utf-8') {
+    // CORS headers KHÔNG đặt ở đây nữa — applyCors() set có điều kiện theo Origin
+    // (allowlist) ngay đầu handleRequest. Wildcard '*' cũ là lỗ hổng cho ghi cross-origin.
     res.writeHead(status, {
         'Content-Type': contentType,
         'Cache-Control': 'no-store',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, X-Filename, Authorization',
     });
     res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
 function sendJSON(res, body, status = 200) { send(res, status, body); }
+
+// CORS có điều kiện: chỉ phản hồi Allow-Origin cho origin trong allowlist.
+// Same-origin (app tự phục vụ) không cần CORS nên không ảnh hưởng. Origin lạ →
+// không có header → trình duyệt chặn preflight PATCH/POST trước khi gửi.
+function applyCors(req, res) {
+    const origin = req.headers.origin;
+    if (origin && config.cors.allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Filename, Authorization');
+    }
+}
 
 function readBody(req, max) {
     return new Promise((resolve, reject) => {
@@ -254,13 +266,59 @@ route('DELETE', new RegExp(`^${API}/improvements/([\\w-]+)$`), async (req, res, 
 
 // ===== META =====
 
+// Backstop chống ghi rác (email OTP, credential) vào meta — kể cả client không phải
+// trình duyệt (CORS không chặn được). Chỉ nhận đúng 5 key app dùng; tên là chuỗi ngắn,
+// cấm ký tự dấu hiệu email/credential/injection (@ | ; < >). Sai → 400.
+const META_LIST_KEYS = new Set(['products', 'devList', 'reporterList', 'bugTypes']);
+const META_STR_KEYS  = new Set(['activeProduct']);
+const META_BAD_CHARS = /[@|;<>]/;
+
+function cleanMetaName(v, label) {
+    if (typeof v !== 'string') throw new Error(`${label}: phải là chuỗi`);
+    const t = v.trim();
+    if (!t) throw new Error(`${label}: rỗng`);
+    if (t.length > 80) throw new Error(`${label}: quá 80 ký tự`);
+    if (META_BAD_CHARS.test(t)) throw new Error(`${label}: chứa ký tự không hợp lệ (@ | ; < >)`);
+    return t;
+}
+
+function sanitizeMetaPatch(patch) {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('Body không hợp lệ');
+    const out = {};
+    for (const [k, v] of Object.entries(patch)) {
+        if (META_LIST_KEYS.has(k)) {
+            if (!Array.isArray(v)) throw new Error(`${k}: phải là mảng`);
+            if (v.length > 100) throw new Error(`${k}: quá 100 phần tử`);
+            const seen = new Set(); const arr = [];
+            for (const item of v) {
+                const t = cleanMetaName(item, k);
+                if (!seen.has(t)) { seen.add(t); arr.push(t); }
+            }
+            out[k] = arr;
+        } else if (META_STR_KEYS.has(k)) {
+            out[k] = cleanMetaName(v, k);
+        } else {
+            throw new Error(`Key meta không hợp lệ: ${k}`);
+        }
+    }
+    if (Object.keys(out).length === 0) throw new Error('Không có trường meta hợp lệ');
+    return out;
+}
+
 route('GET', new RegExp(`^${API}/meta$`), async (req, res, ctx) => {
     sendJSON(res, db.meta.getAll(ctx.workspace));
 });
 
 route('PATCH', new RegExp(`^${API}/meta$`), async (req, res, ctx) => {
     const body = await readJSON(req);
-    const out = db.meta.setMany(ctx.workspace, body);
+    let clean;
+    try {
+        clean = sanitizeMetaPatch(body);
+    } catch (e) {
+        logger.warn({ err: e.message, origin: req.headers.origin, ws: ctx.workspace }, 'meta patch rejected');
+        return sendJSON(res, { error: e.message }, 400);
+    }
+    const out = db.meta.setMany(ctx.workspace, clean);
     sendJSON(res, out);
 });
 
@@ -307,6 +365,8 @@ async function handleRequest(req, res) {
     const u = url.parse(req.url, true);
     const pathname = u.pathname;
     let ctx = null;
+
+    applyCors(req, res);
 
     if (req.method === 'OPTIONS') {
         send(res, 204, '', 'text/plain');
@@ -398,8 +458,8 @@ function start() {
     }
 
     const server = http.createServer(handleRequest);
-    server.listen(config.port, '0.0.0.0', () => {
-        logger.info({ port: config.port, env: config.env }, 'server listening');
+    server.listen(config.port, config.host, () => {
+        logger.info({ port: config.port, host: config.host, env: config.env }, 'server listening');
     });
 
     function shutdown(sig) {
