@@ -93,12 +93,15 @@
         #trash-modal .tr-restore { padding: 7px 13px; border: 1px solid #c7d2fe; border-radius: 8px; background: #eef2ff; color: #4f46e5; font-weight: 600; font-size: 12.5px; cursor: pointer; flex-shrink: 0; }
         #trash-modal .tr-restore:hover { background: #e0e7ff; }
         #trash-modal .tr-empty { padding: 28px; text-align: center; color: #94a3b8; }
-        /* Modal xác nhận / thông báo trong app (thay confirm/alert native) */
+        /* Modal xác nhận / thông báo trong app (thay confirm/alert native) — căn giữa, gọn đẹp */
         #confirm-modal, #notice-modal { z-index: 10000; }
-        #confirm-modal .modal-content, #notice-modal .modal-content { max-width: 430px; }
-        .ui-msg { padding: 6px 4px 16px; white-space: pre-line; line-height: 1.55; color: #334155; font-size: 14px; }
-        .ui-btns { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; flex-wrap: wrap; }
-        .ui-btns button { padding: 8px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+        #confirm-modal .modal-content, #notice-modal .modal-content { max-width: 400px; padding: 22px 22px 18px; }
+        #confirm-modal .modal-header, #notice-modal .modal-header { justify-content: center; position: relative; border: none; padding: 0 0 4px; }
+        #confirm-modal .modal-header h3, #notice-modal .modal-header h3 { font-size: 17px; text-align: center; }
+        #confirm-modal .modal-close, #notice-modal .modal-close { position: absolute; right: -6px; top: -4px; }
+        .ui-msg { padding: 8px 4px 18px; white-space: pre-line; line-height: 1.55; color: #475569; font-size: 14px; text-align: center; }
+        .ui-btns { display: flex; justify-content: center; gap: 10px; padding-top: 2px; flex-wrap: wrap; }
+        .ui-btns button { padding: 9px 22px; min-width: 110px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
         .ui-cancel { background: #e2e8f0; color: #334155; }
         .ui-cancel:hover { background: #cbd5e1; }
         .ui-ok { background: #6366f1; color: #fff; }
@@ -184,7 +187,7 @@
                 <button id="btn-users" class="btn-small" title="Quản lý người dùng (admin)"><span class="btn-icon-emo">👥</span> <span class="btn-label">Người dùng</span></button>
                 <input type="file" id="import-file" accept=".json" hidden>
                 <div class="sync-indicator">🔄 <span class="btn-label">Cập nhật lúc:</span> <span id="sync-time">--:--:--</span></div>
-                <div class="user-box"><span id="current-user"></span> <button id="btn-logout" class="btn-small" title="Đăng xuất">🚪 <span class="btn-label">Thoát</span></button></div>
+                <div class="user-box"><span id="current-user"></span> <button id="btn-logout" class="btn-small" title="Đăng xuất">🚪 <span class="btn-label">LogOut</span></button></div>
             </div>
         </nav>
 
@@ -582,6 +585,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-id6"></script>
+    <script src="app.js?v=20260624-id7"></script>
 </body>
 </html>

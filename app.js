@@ -153,6 +153,15 @@ function uiNotice(message, opts = {}) {
     });
 }
 
+// Click ra ngoài (backdrop) để đóng modal — bấm đúng lớp phủ .modal (không phải nội dung bên trong).
+document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && t.classList && t.classList.contains('modal') && !t.hidden) {
+        const closeBtn = t.querySelector('.modal-close'); // X / huỷ — cũng resolve confirm/notice
+        if (closeBtn) closeBtn.click(); else t.hidden = true;
+    }
+});
+
 // DataSync: load full + delta poll. Modal mở thì skip để không ghi đè input.
 const DataSync = {
     async loadAll() {
