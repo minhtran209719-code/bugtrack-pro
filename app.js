@@ -2385,7 +2385,7 @@ async function openTrash() {
 }
 
 // ===== Admin: quản lý người dùng =====
-async function openUsers() {
+async function openUsers(flashId) {
     if (!Auth.is('admin')) { toast('Chỉ admin được quản lý người dùng', 'error'); return; }
     let data;
     try { data = await apiCall('GET', '/auth/users'); }
@@ -2425,20 +2425,30 @@ async function openUsers() {
     body.innerHTML = items.map(u => {
         const initials = (u.name || u.email || '?').trim().charAt(0).toUpperCase();
         return `
-        <div class="u-row ${u.active ? '' : 'locked'}">
+        <div class="u-row ${u.active ? '' : 'locked'}" data-id="${u.id}">
             <div class="u-avatar ${esc(u.role)}">${esc(initials)}</div>
-            <div class="u-info">
-                <div class="u-name">${esc(u.name || u.email)} ${u.active ? '' : '<span class="u-locktag">đã khoá</span>'}</div>
+            <div class="u-info u-view">
+                <div class="u-name">${esc(u.name || u.email)} ${u.active ? '' : '<span class="u-locktag">đã khoá</span>'} <span class="u-saved-badge">✓ Đã lưu</span></div>
                 <div class="u-email">@${esc(u.email)}</div>
             </div>
-            <select class="u-role" data-id="${u.id}" title="Đổi vai trò">
+            <div class="u-edit-fields">
+                <input class="u-edit-name" value="${esc(u.name || '')}" placeholder="Tên hiển thị" maxlength="40">
+                <input class="u-edit-email" value="${esc(u.email || '')}" placeholder="tài khoản" autocomplete="off" maxlength="40">
+            </div>
+            <select class="u-role u-view-act" data-id="${u.id}" title="Đổi vai trò">
               ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
-            <button class="u-btn u-edit" data-id="${u.id}" title="Sửa tên & tài khoản">✏️</button>
-            <button class="u-btn u-lock ${u.active ? '' : 'locked'}" data-id="${u.id}" data-active="${u.active}" title="${u.active ? 'Khoá tài khoản' : 'Mở khoá'}">${u.active ? '🔒' : '🔓'}</button>
-            <button class="u-btn u-reset" data-id="${u.id}" title="Reset mật khẩu">🔁</button>
+            <button class="u-btn u-edit u-view-act" data-id="${u.id}" title="Sửa tên & tài khoản">✏️</button>
+            <button class="u-btn u-lock u-view-act ${u.active ? '' : 'locked'}" data-id="${u.id}" data-active="${u.active}" title="${u.active ? 'Khoá tài khoản' : 'Mở khoá'}">${u.active ? '🔒' : '🔓'}</button>
+            <button class="u-btn u-reset u-view-act" data-id="${u.id}" title="Reset mật khẩu">🔁</button>
+            <button class="u-btn u-save u-edit-act" data-id="${u.id}" title="Lưu (Enter)">✓</button>
+            <button class="u-btn u-cancel u-edit-act" data-id="${u.id}" title="Huỷ (Esc)">✕</button>
         </div>`;
     }).join('');
+    if (flashId) {
+        const fr = body.querySelector(`.u-row[data-id="${flashId}"]`);
+        if (fr) { fr.classList.add('saved-flash'); setTimeout(() => fr.classList.remove('saved-flash'), 1500); }
+    }
     body.querySelectorAll('.u-role').forEach(sel => sel.addEventListener('change', async () => {
         try { await apiCall('PATCH', `/auth/users/${sel.dataset.id}`, { role: sel.value }); toast('Đã đổi vai trò', 'success'); openUsers(); }
         catch (e) { toast('Lỗi: ' + e.message, 'error'); openUsers(); }
@@ -2453,54 +2463,38 @@ async function openUsers() {
         try { const r = await apiCall('POST', `/auth/users/${btn.dataset.id}/reset-password`); await uiNotice('Mật khẩu tạm mới — gửi cho người dùng:', { title: '🔁 Đã reset mật khẩu', copyText: r.tempPassword }); }
         catch (e) { toast('Lỗi: ' + e.message, 'error'); }
     }));
-    body.querySelectorAll('.u-edit').forEach(btn => btn.addEventListener('click', async () => {
-        const u = items.find(x => x.id === btn.dataset.id);
-        if (!u) return;
-        const res = await uiEditUser(u);
-        if (!res) return;
+    // Sửa inline: ✏️ mở edit mode trên hàng
+    body.querySelectorAll('.u-edit').forEach(btn => btn.addEventListener('click', () => {
+        const row = btn.closest('.u-row');
+        row.classList.add('editing');
+        const nameI = row.querySelector('.u-edit-name');
+        nameI.focus(); nameI.select();
+    }));
+    body.querySelectorAll('.u-cancel').forEach(btn => btn.addEventListener('click', () => {
+        const row = btn.closest('.u-row');
+        const u = items.find(x => x.id === row.dataset.id);
+        row.querySelector('.u-edit-name').value = u ? (u.name || '') : '';
+        row.querySelector('.u-edit-email').value = u ? (u.email || '') : '';
+        row.classList.remove('editing');
+    }));
+    const saveRow = async (row) => {
+        const id = row.dataset.id;
+        const name = row.querySelector('.u-edit-name').value.trim();
+        const email = row.querySelector('.u-edit-email').value.trim().toLowerCase();
+        if (!name) { toast('Tên không được rỗng', 'error'); return; }
+        if (!/^[^\s@]{2,40}(@[^\s@]+\.[^\s@]+)?$/.test(email)) { toast('Tài khoản không hợp lệ (2-40 ký tự, không dấu cách)', 'error'); return; }
         try {
-            await apiCall('PATCH', `/auth/users/${u.id}`, { name: res.name, email: res.email });
-            toast('Đã cập nhật người dùng', 'success');
-            openUsers();
+            await apiCall('PATCH', `/auth/users/${id}`, { name, email });
+            await openUsers(id);   // render lại + flash hàng vừa lưu
         } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+    };
+    body.querySelectorAll('.u-save').forEach(btn => btn.addEventListener('click', () => saveRow(btn.closest('.u-row'))));
+    // Enter để lưu, Esc để huỷ trong ô input
+    body.querySelectorAll('.u-edit-fields input').forEach(inp => inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveRow(inp.closest('.u-row')); }
+        else if (e.key === 'Escape') { inp.closest('.u-row').querySelector('.u-cancel').click(); }
     }));
     modal.hidden = false;
-}
-
-// Modal sửa tên + tài khoản (username) của user. Resolve {name,email} hoặc null nếu huỷ.
-function uiEditUser(cur) {
-    return new Promise(resolve => {
-        let m = document.getElementById('edituser-modal');
-        if (!m) {
-            m = document.createElement('div');
-            m.id = 'edituser-modal'; m.className = 'modal';
-            m.innerHTML = `<div class="modal-content" style="max-width:400px">
-                <div class="modal-header"><h3>✏️ Sửa người dùng</h3><button class="modal-close" id="eu-x">✕</button></div>
-                <label class="eu-label">Tên hiển thị</label>
-                <input id="eu-name" class="eu-input" type="text">
-                <label class="eu-label">Tài khoản đăng nhập</label>
-                <input id="eu-email" class="eu-input" type="text" autocomplete="off">
-                <div id="eu-err" class="login-error"></div>
-                <div class="ui-btns"><button class="ui-cancel" id="eu-cancel">Huỷ</button><button class="ui-ok" id="eu-save">Lưu</button></div>
-            </div>`;
-            document.body.appendChild(m);
-        }
-        const nameI = m.querySelector('#eu-name'), emailI = m.querySelector('#eu-email');
-        const err = m.querySelector('#eu-err');
-        nameI.value = cur.name || ''; emailI.value = cur.email || ''; err.textContent = '';
-        const save = m.querySelector('#eu-save'), cancel = m.querySelector('#eu-cancel'), x = m.querySelector('#eu-x');
-        const done = (v) => { m.hidden = true; save.onclick = cancel.onclick = x.onclick = null; resolve(v); };
-        save.onclick = () => {
-            const name = nameI.value.trim(), email = emailI.value.trim().toLowerCase();
-            if (!name) { err.textContent = 'Tên không được rỗng'; return; }
-            if (!/^[^\s@]{2,40}(@[^\s@]+\.[^\s@]+)?$/.test(email)) { err.textContent = 'Tài khoản không hợp lệ (2-40 ký tự, không dấu cách)'; return; }
-            done({ name, email });
-        };
-        cancel.onclick = () => done(null);
-        x.onclick = () => done(null);
-        m.hidden = false;
-        nameI.focus();
-    });
 }
 
 (async function init() {

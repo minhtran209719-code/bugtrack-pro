@@ -61,10 +61,24 @@
             font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
         .u-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
         .u-btn.u-lock.locked { background: #fef2f2; border-color: #fecaca; }
-        #edituser-modal { z-index: 10001; }
-        #edituser-modal .eu-label { display: block; font-size: 13px; color: #64748b; margin: 10px 0 4px; }
-        #edituser-modal .eu-input { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
-        #edituser-modal .eu-input:focus { outline: none; border-color: #6366f1; }
+        /* Sửa user inline trong hàng */
+        .u-row .u-edit-fields { display: none; flex: 1; gap: 6px; align-items: center; min-width: 0; }
+        .u-row .u-edit-fields input { flex: 1; min-width: 60px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 13px; }
+        .u-row .u-edit-fields input:focus { outline: none; border-color: #6366f1; }
+        .u-row .u-edit-act { display: none; }
+        .u-row.editing .u-view, .u-row.editing .u-view-act { display: none !important; }
+        .u-row.editing .u-edit-fields { display: flex; }
+        .u-row.editing .u-edit-act { display: flex; }
+        .u-btn.u-save { color: #16a34a; font-weight: 700; }
+        .u-btn.u-save:hover { background: #dcfce7; border-color: #86efac; }
+        .u-btn.u-cancel { color: #dc2626; }
+        .u-btn.u-cancel:hover { background: #fee2e2; border-color: #fecaca; }
+        /* Animation báo đã lưu */
+        @keyframes uSaved { 0% { background: #bbf7d0; } 60% { background: #dcfce7; } 100% { background: transparent; } }
+        .u-row.saved-flash { animation: uSaved 1.4s ease; }
+        .u-saved-badge { font-size: 11px; color: #16a34a; font-weight: 700; opacity: 0; }
+        .u-row.saved-flash .u-saved-badge { animation: badgeShow 1.4s ease; }
+        @keyframes badgeShow { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
         /* Thùng rác */
         #trash-modal .trash-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid #f1f5f9; }
         #trash-modal .trash-row:hover { background: #f8fafc; }
@@ -564,6 +578,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-id4"></script>
+    <script src="app.js?v=20260624-id5"></script>
 </body>
 </html>
