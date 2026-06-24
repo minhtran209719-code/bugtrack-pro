@@ -61,10 +61,14 @@
             font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
         .u-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
         .u-btn.u-lock.locked { background: #fef2f2; border-color: #fecaca; }
-        /* Sửa user inline trong hàng */
-        .u-row .u-edit-fields { display: none; flex: 1; gap: 6px; align-items: center; min-width: 0; }
-        .u-row .u-edit-fields input { flex: 1; min-width: 60px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 13px; }
-        .u-row .u-edit-fields input:focus { outline: none; border-color: #6366f1; }
+        /* Nhãn rõ Tên / Tài khoản ở phần xem */
+        .u-fld-lbl { color: #cbd5e1; font-weight: 600; }
+        /* Sửa user inline trong hàng — mỗi ô có nhãn prefix rõ ràng */
+        .u-row .u-edit-fields { display: none; flex: 1; gap: 8px; align-items: center; min-width: 0; }
+        .u-ef { display: flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 7px; overflow: hidden; flex: 1; min-width: 90px; background: #fff; }
+        .u-ef:focus-within { border-color: #6366f1; }
+        .u-ef-lbl { font-size: 11px; color: #64748b; background: #f1f5f9; padding: 7px 8px; border-right: 1px solid #e2e8f0; white-space: nowrap; font-weight: 600; }
+        .u-ef input { border: none; outline: none; padding: 7px 9px; font-size: 13px; flex: 1; min-width: 0; width: 100%; }
         .u-row .u-edit-act { display: none; }
         .u-row.editing .u-view, .u-row.editing .u-view-act { display: none !important; }
         .u-row.editing .u-edit-fields { display: flex; }
@@ -578,6 +582,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-id5"></script>
+    <script src="app.js?v=20260624-id6"></script>
 </body>
 </html>

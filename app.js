@@ -2429,11 +2429,11 @@ async function openUsers(flashId) {
             <div class="u-avatar ${esc(u.role)}">${esc(initials)}</div>
             <div class="u-info u-view">
                 <div class="u-name">${esc(u.name || u.email)} ${u.active ? '' : '<span class="u-locktag">đã khoá</span>'} <span class="u-saved-badge">✓ Đã lưu</span></div>
-                <div class="u-email">@${esc(u.email)}</div>
+                <div class="u-email"><span class="u-fld-lbl">Tài khoản:</span> ${esc(u.email)}</div>
             </div>
             <div class="u-edit-fields">
-                <input class="u-edit-name" value="${esc(u.name || '')}" placeholder="Tên hiển thị" maxlength="40">
-                <input class="u-edit-email" value="${esc(u.email || '')}" placeholder="tài khoản" autocomplete="off" maxlength="40">
+                <div class="u-ef"><span class="u-ef-lbl">Tên</span><input class="u-edit-name" value="${esc(u.name || '')}" maxlength="40"></div>
+                <div class="u-ef"><span class="u-ef-lbl">Tài khoản</span><input class="u-edit-email" value="${esc(u.email || '')}" autocomplete="off" maxlength="40"></div>
             </div>
             <select class="u-role u-view-act" data-id="${u.id}" title="Đổi vai trò">
               ${['admin', 'dev', 'support'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
