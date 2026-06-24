@@ -71,6 +71,72 @@ async function apiCall(method, path, body, opts = {}) {
     return res.json();
 }
 
+// ===== Modal xác nhận / thông báo trong app (thay confirm()/alert() native) =====
+function uiConfirm(message, opts = {}) {
+    return new Promise(resolve => {
+        let m = document.getElementById('confirm-modal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'confirm-modal'; m.className = 'modal';
+            m.innerHTML = `<div class="modal-content">
+                <div class="modal-header"><h3 id="cf-title"></h3>
+                <button class="modal-close" id="cf-x">✕</button></div>
+                <div class="ui-msg" id="cf-msg"></div>
+                <div class="ui-btns">
+                    <button class="ui-cancel" id="cf-cancel"></button>
+                    <button class="ui-ok" id="cf-ok"></button>
+                </div></div>`;
+            document.body.appendChild(m);
+        }
+        m.querySelector('#cf-title').textContent = opts.title || 'Xác nhận';
+        m.querySelector('#cf-msg').textContent = message;
+        const ok = m.querySelector('#cf-ok'), cancel = m.querySelector('#cf-cancel'), x = m.querySelector('#cf-x');
+        ok.textContent = opts.okText || 'Đồng ý';
+        cancel.textContent = opts.cancelText || 'Huỷ';
+        ok.className = 'ui-ok' + (opts.danger === false ? '' : ' danger');
+        const done = (v) => { m.hidden = true; ok.onclick = cancel.onclick = x.onclick = null; resolve(v); };
+        ok.onclick = () => done(true);
+        cancel.onclick = () => done(false);
+        x.onclick = () => done(false);
+        m.hidden = false;
+        ok.focus();
+    });
+}
+
+function uiNotice(message, opts = {}) {
+    return new Promise(resolve => {
+        let m = document.getElementById('notice-modal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'notice-modal'; m.className = 'modal';
+            m.innerHTML = `<div class="modal-content">
+                <div class="modal-header"><h3 id="nt-title"></h3>
+                <button class="modal-close" id="nt-x">✕</button></div>
+                <div class="ui-msg" id="nt-msg"></div>
+                <div id="nt-copy"></div>
+                <div class="ui-btns"><button class="ui-ok" id="nt-ok">OK</button></div></div>`;
+            document.body.appendChild(m);
+        }
+        m.querySelector('#nt-title').textContent = opts.title || 'Thông báo';
+        m.querySelector('#nt-msg').textContent = message;
+        const copyBox = m.querySelector('#nt-copy');
+        copyBox.innerHTML = '';
+        if (opts.copyText) {
+            const box = document.createElement('div');
+            box.className = 'ui-copybox';
+            const span = document.createElement('span'); span.textContent = opts.copyText;
+            const btn = document.createElement('button'); btn.textContent = '📋 Copy';
+            btn.onclick = () => { navigator.clipboard?.writeText(opts.copyText).then(() => { btn.textContent = '✓ Đã copy'; }); };
+            box.appendChild(span); box.appendChild(btn); copyBox.appendChild(box);
+        }
+        const ok = m.querySelector('#nt-ok'), x = m.querySelector('#nt-x');
+        const done = () => { m.hidden = true; ok.onclick = x.onclick = null; resolve(); };
+        ok.onclick = done; x.onclick = done;
+        m.hidden = false;
+        ok.focus();
+    });
+}
+
 // DataSync: load full + delta poll. Modal mở thì skip để không ghi đè input.
 const DataSync = {
     async loadAll() {
@@ -224,11 +290,11 @@ document.getElementById('btn-add-product').addEventListener('click', () => {
     }
 });
 
-document.getElementById('btn-del-product').addEventListener('click', () => {
+document.getElementById('btn-del-product').addEventListener('click', async () => {
     const products = ProductDB.get();
     const active = ProductDB.getActive();
     if (products.length <= 1) { toast('Phải giữ ít nhất 1 sản phẩm!', 'error'); return; }
-    if (!confirm(`Xóa sản phẩm "${active}" và toàn bộ lỗi của nó?`)) return;
+    if (!await uiConfirm(`Xoá sản phẩm "${active}" và toàn bộ lỗi của nó? (Lỗi sẽ vào thùng rác, khôi phục được)`, { title: '🗑️ Xoá sản phẩm', okText: 'Xoá sản phẩm', danger: true })) return;
     ProductDB.remove(active);
     ProductDB.setActive(ProductDB.get()[0]);
     renderProductSelect();
@@ -1267,7 +1333,7 @@ async function handleFiles(files) {
 }
 
 // Save
-document.getElementById('btn-bug-save').addEventListener('click', () => {
+document.getElementById('btn-bug-save').addEventListener('click', async () => {
     try {
     const name = document.getElementById('bug-name').value.trim();
     if (!name) { toast('Vui lòng nhập tên lỗi!', 'error'); return; }
@@ -1299,7 +1365,7 @@ document.getElementById('btn-bug-save').addEventListener('click', () => {
         const duplicates = findDuplicateBugs(data.name, data.description);
         if (duplicates.length > 0) {
             const dupList = duplicates.map(d => `• ${d.id}: ${d.name} (${d.status})`).join('\n');
-            const proceed = confirm(`⚠️ Phát hiện ${duplicates.length} lỗi tương tự:\n\n${dupList}\n\nBạn vẫn muốn tạo mới?`);
+            const proceed = await uiConfirm(`Phát hiện ${duplicates.length} lỗi tương tự:\n\n${dupList}\n\nVẫn muốn tạo mới?`, { title: '⚠️ Lỗi có thể trùng', okText: 'Vẫn tạo mới', danger: false });
             if (!proceed) return;
         }
     }
@@ -1335,7 +1401,7 @@ function editBug(id) {
 }
 
 async function deleteBug(id) {
-    if (!confirm('Xóa lỗi này?')) return;
+    if (!await uiConfirm('Xoá lỗi này? (Vào thùng rác, khôi phục được)', { title: '🗑️ Xoá lỗi', okText: 'Xoá', danger: true })) return;
     // Server tự xoá kèm attachments khi DELETE bug.
     BugDB.delete(id);
     toast('Đã xóa!', 'success');
@@ -1759,10 +1825,10 @@ function renderImprovements() {
                 renderImprovements();
             });
             menu.querySelectorAll('.cdrop-x').forEach(x => {
-                x.addEventListener('click', e => {
+                x.addEventListener('click', async e => {
                     e.stopPropagation();
                     const name = x.dataset.dev;
-                    if (!confirm(`Xóa tên "${name}" khỏi danh sách?`)) return;
+                    if (!await uiConfirm(`Xoá tên "${name}" khỏi danh sách?`, { title: 'Xoá khỏi danh sách', okText: 'Xoá', danger: true })) return;
                     if (listKind === 'reporter') ReporterDB.remove(name);
                     else DevListDB.remove(name);
                     // Clear references in bugs + imps
@@ -1825,8 +1891,8 @@ function editImp(id) {
     if (imp) openImpModal(imp);
 }
 
-function deleteImp(id) {
-    if (!confirm('Xóa đề xuất này?')) return;
+async function deleteImp(id) {
+    if (!await uiConfirm('Xoá đề xuất này? (Vào thùng rác, khôi phục được)', { title: '🗑️ Xoá đề xuất', okText: 'Xoá', danger: true })) return;
     ImpDB.delete(id);
     toast('Đã xóa!', 'success');
     renderImprovements();
@@ -1902,7 +1968,7 @@ document.getElementById('btn-import').addEventListener('click', () => document.g
 document.getElementById('import-file').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!confirm('Nhập dữ liệu sẽ TẠO MỚI từng bug/improvement vào server (không ghi đè bug hiện có). Tiếp tục?')) return;
+    if (!await uiConfirm('Nhập dữ liệu sẽ TẠO MỚI từng lỗi/đề xuất vào server (không ghi đè dữ liệu hiện có). Tiếp tục?', { title: '📂 Nhập dữ liệu', okText: 'Nhập', danger: false })) return;
     try {
         const data = JSON.parse(await file.text());
         let nb = 0, ni = 0;
@@ -2261,7 +2327,7 @@ document.getElementById('btn-bug-bulk-clear').addEventListener('click', () => {
 document.getElementById('btn-bug-bulk-delete').addEventListener('click', async () => {
     const ids = Array.from(Selection.bugs);
     if (ids.length === 0) return;
-    if (!confirm(`Xóa ${ids.length} lỗi đã chọn? Không thể hoàn tác.`)) return;
+    if (!await uiConfirm(`Xoá ${ids.length} lỗi đã chọn? (Vào thùng rác, khôi phục được)`, { title: '🗑️ Xoá nhiều lỗi', okText: `Xoá ${ids.length} lỗi`, danger: true })) return;
     for (const id of ids) await BugDB.delete(id);
     Selection.bugs.clear();
     toast(`Đã xóa ${ids.length} lỗi`, 'success');
@@ -2277,7 +2343,7 @@ document.getElementById('btn-imp-bulk-clear').addEventListener('click', () => {
 document.getElementById('btn-imp-bulk-delete').addEventListener('click', async () => {
     const ids = Array.from(Selection.imps);
     if (ids.length === 0) return;
-    if (!confirm(`Xóa ${ids.length} hạng mục đã chọn? Không thể hoàn tác.`)) return;
+    if (!await uiConfirm(`Xoá ${ids.length} hạng mục đã chọn? (Vào thùng rác, khôi phục được)`, { title: '🗑️ Xoá nhiều hạng mục', okText: `Xoá ${ids.length} mục`, danger: true })) return;
     for (const id of ids) await ImpDB.delete(id);
     Selection.imps.clear();
     toast(`Đã xóa ${ids.length} hạng mục`, 'success');
@@ -2359,7 +2425,11 @@ function showRegisterForm() {
     document.getElementById('login-form').hidden = true;
     document.getElementById('register-form').hidden = false;
 }
-function logout() { Auth.clear(); location.reload(); }
+async function logout() {
+    if (!await uiConfirm('Đăng xuất khỏi BugTrack Pro?', { title: '🚪 Đăng xuất', okText: 'Đăng xuất', danger: false })) return;
+    Auth.clear();
+    location.reload();
+}
 
 // ===== Thùng rác (khôi phục bug xoá mềm) — dev/admin =====
 async function openTrash() {
@@ -2433,7 +2503,7 @@ async function openUsers() {
             if (!email || !name) { toast('Nhập tài khoản + tên', 'error'); return; }
             try {
                 const r = await apiCall('POST', '/auth/users', { email, name, role });
-                alert(`Đã tạo "${name}".\nTài khoản: ${email}\nMật khẩu tạm: ${r.tempPassword}\n→ Gửi cho người dùng, họ tự đổi sau.`);
+                await uiNotice(`Đã tạo "${name}" (${role}).\nTài khoản: ${email}\nMật khẩu tạm — gửi cho người dùng, họ tự đổi sau:`, { title: '✅ Tạo tài khoản', copyText: r.tempPassword });
                 modal.querySelector('#nu-email').value = ''; modal.querySelector('#nu-name').value = '';
                 openUsers();
             } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
@@ -2461,8 +2531,8 @@ async function openUsers() {
         catch (e) { toast('Lỗi: ' + e.message, 'error'); }
     }));
     body.querySelectorAll('.u-reset').forEach(btn => btn.addEventListener('click', async () => {
-        if (!confirm('Reset mật khẩu người dùng này thành mật khẩu tạm mới?')) return;
-        try { const r = await apiCall('POST', `/auth/users/${btn.dataset.id}/reset-password`); alert('Mật khẩu tạm mới: ' + r.tempPassword + '\n→ Gửi cho người dùng.'); }
+        if (!await uiConfirm('Reset mật khẩu người dùng này thành mật khẩu tạm mới?', { title: '🔁 Reset mật khẩu', okText: 'Reset', danger: true })) return;
+        try { const r = await apiCall('POST', `/auth/users/${btn.dataset.id}/reset-password`); await uiNotice('Mật khẩu tạm mới — gửi cho người dùng:', { title: '🔁 Đã reset mật khẩu', copyText: r.tempPassword }); }
         catch (e) { toast('Lỗi: ' + e.message, 'error'); }
     }));
     modal.hidden = false;

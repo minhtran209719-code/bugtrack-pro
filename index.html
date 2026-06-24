@@ -48,6 +48,21 @@
         .role-pill.admin { background: #fee2e2; color: #b91c1c; }
         .role-pill.dev { background: #dbeafe; color: #1d4ed8; }
         .role-pill.support { background: #dcfce7; color: #166534; }
+        /* Modal xác nhận / thông báo trong app (thay confirm/alert native) */
+        #confirm-modal, #notice-modal { z-index: 10000; }
+        #confirm-modal .modal-content, #notice-modal .modal-content { max-width: 430px; }
+        .ui-msg { padding: 6px 4px 16px; white-space: pre-line; line-height: 1.55; color: #334155; font-size: 14px; }
+        .ui-btns { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; flex-wrap: wrap; }
+        .ui-btns button { padding: 8px 18px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+        .ui-cancel { background: #e2e8f0; color: #334155; }
+        .ui-cancel:hover { background: #cbd5e1; }
+        .ui-ok { background: #6366f1; color: #fff; }
+        .ui-ok:hover { background: #4f46e5; }
+        .ui-ok.danger { background: #dc2626; }
+        .ui-ok.danger:hover { background: #b91c1c; }
+        .ui-copybox { display: flex; gap: 6px; align-items: center; background: #f1f5f9; border-radius: 8px;
+            padding: 8px 10px; margin: 8px 0; font-family: monospace; font-size: 13px; word-break: break-all; }
+        .ui-copybox button { margin-left: auto; padding: 4px 10px; border: none; border-radius: 6px; background: #6366f1; color: #fff; cursor: pointer; font-size: 12px; }
         .user-box { display: flex; align-items: center; gap: 6px; justify-content: space-between;
             font-size: 12px; color: #cbd5e1; padding: 6px 4px; }
         .user-box #current-user { font-weight: 600; }
@@ -522,6 +537,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260624-auth3"></script>
+    <script src="app.js?v=20260624-auth4"></script>
 </body>
 </html>
