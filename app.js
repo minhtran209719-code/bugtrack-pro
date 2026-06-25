@@ -1246,10 +1246,18 @@ function uploadToServer(blob, filename, onProgress) {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', API + '/uploads');
         xhr.setRequestHeader('X-Filename', encodeURIComponent(filename));
+        // Auth: gửi token (giống apiCall) — thiếu cái này thì upload bị 401 khi đã bật auth.
+        if (Auth.token) xhr.setRequestHeader('Authorization', 'Bearer ' + Auth.token);
         xhr.upload.onprogress = e => {
             if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
         };
         xhr.onload = () => {
+            if (xhr.status === 401) {   // token hết hạn → về login
+                Auth.clear();
+                if (typeof showLogin === 'function') showLogin();
+                reject(new Error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'));
+                return;
+            }
             try {
                 const json = JSON.parse(xhr.responseText);
                 if (xhr.status >= 200 && xhr.status < 300 && json.url) {
